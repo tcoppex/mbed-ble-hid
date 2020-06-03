@@ -3,7 +3,7 @@
 This project provides a simple library to implement *Human Interface Device* (HID) 
 for *Bluetooth Low Energy* (BLE) on a MBED stack using the *HID Over GATT Profile* (HOGP). 
 
-It was especially developped for the **Arduino nano 33 BLE** and tested with GNU/Linux (*Linux Mint 18.04*), 
+It was especially developped for the **Arduino nano 33 BLE** and tested with GNU/Linux (*Linux Mint 19.3*), 
 Android 8.0, and Windows 10.
 
 ## How To Use

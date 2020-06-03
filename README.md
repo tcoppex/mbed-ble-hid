@@ -29,14 +29,15 @@ from the server before coupling it again.
 
 ## Acknowledgement
 
-This project greatly benefits from the following resources :
+This project greatly benefited from the following resources :
 
 * mbed Microcontroller Library samples
-* [BLE_HID](https://github.com/jpbrucker/BLE_HID) by jpbrucker
-* [BLEKeyboard](https://github.com/bitbank2/BLE_Keyboard) by bitbank2
 * [Nordic semiconductor SDK 16](http://developer.nordicsemi.com/nRF5_SDK/nRF5_SDK_v16.x.x/)
+* [BLEKeyboard](https://github.com/bitbank2/BLE_Keyboard) by bitbank2
+* [BLE_HID](https://github.com/jpbrucker/BLE_HID) by jpbrucker
 
-Many thanks to their developpers.
+I recommend looking at jpbrucker's implementation for a deprecated alternative really well
+documented.
 
 ## References
 

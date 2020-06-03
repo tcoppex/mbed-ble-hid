@@ -22,10 +22,10 @@ If you don't have any analog joystick you can enable the **ENABLE_RANDOM_INPUT**
 
 ## Known issues
 
-The device only work after the initial coupling. A temporary fix consists of dissassociate the device 
+The device only work after the initial coupling. A temporary fix consists of dissassociating the device 
 from the server before coupling it again.
 
-*Any help with that would be really appreciated.*
+*Any help with that would be really appreciated :)*
 
 ## Acknowledgement
 

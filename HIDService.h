@@ -26,8 +26,8 @@ enum HIDApplicationUsage {
 
 /* -------------------------------------------------------------------------- */
 
-#ifndef BLE_UUID_REPORT_REF_DESCR
-#define BLE_UUID_REPORT_REF_DESCR       0x2908
+#ifndef ATT_UUID_HID_REPORT_ID_MAPPING
+#define ATT_UUID_HID_REPORT_ID_MAPPING       0x2908
 #endif
 
 enum ReportType {

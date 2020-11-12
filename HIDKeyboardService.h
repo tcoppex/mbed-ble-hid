@@ -19,7 +19,7 @@ struct {
 // Input Report Reference
 static report_reference_t input_report_ref = { 0, INPUT_REPORT };
 static GattAttribute input_report_ref_desc(
-  BLE_UUID_REPORT_REF_DESCR,
+  ATT_UUID_HID_REPORT_ID_MAPPING,
   (uint8_t*)&input_report_ref,
   sizeof(input_report_ref),
   sizeof(input_report_ref)
@@ -36,7 +36,7 @@ struct {
 // Output Report Reference
 static report_reference_t output_report_ref = { 0, OUTPUT_REPORT };
 static GattAttribute output_report_ref_desc(
-  BLE_UUID_REPORT_REF_DESCR,
+  ATT_UUID_HID_REPORT_ID_MAPPING,
   (uint8_t*)&output_report_ref,
   sizeof(output_report_ref),
   sizeof(output_report_ref)

@@ -77,21 +77,22 @@ class AnalogJoystick {
     float last_x = x_;
     float last_y = y_;
 
-    if (x_ < calibration_x_) {
+    const float eps = 0.001f;
+    if (fabs(x_ - calibration_x_) < eps) {
       x_ = mmap(x_, -1.0f, calibration_x_, -1.0f, 0.0f);
     } else {
       x_ = mmap(x_, calibration_x_, 1.0f, 0.0f, 1.0f);
     }
 
-    if (y_ < calibration_y_) {
+    if (fabs(y_ - calibration_y_) < eps) {
       y_ = mmap(y_, -1.0f, calibration_y_, -1.0f, 0.0f);
     } else {
       y_ = mmap(y_, calibration_y_, 1.0f, 0.0f, 1.0f);
     }
 
     const float l = 0.01f;
-    x_ *= smoothstep(l, 1.0-l, abs(x_));
-    y_ *= smoothstep(l, 1.0-l, abs(y_));
+    x_ *= smoothstep(l, 1.0f-l, fabs(x_));
+    y_ *= smoothstep(l, 1.0f-l, fabs(y_));
 
     const float damp_factor = 0.96f;
     x_ = lerp( last_x, x_, damp_factor);

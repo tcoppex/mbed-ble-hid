@@ -21,7 +21,7 @@ struct {
 // Input report reference
 static report_reference_t input_report_ref = { 0, INPUT_REPORT };
 static GattAttribute input_report_ref_desc(
-  BLE_UUID_REPORT_REF_DESCR,
+  ATT_UUID_HID_REPORT_ID_MAPPING,
   (uint8_t*)&input_report_ref,
   sizeof(input_report_ref),
   sizeof(input_report_ref)
@@ -103,14 +103,19 @@ class HIDMouseService : public HIDService {
   {}
 
   void motion(float fx, float fy) {
-    uint8_t x = int(0x100 + fx * 0x7f) & 0xff;
-    uint8_t y = int(0x100 + fy * 0x7f) & 0xff;
+    uint8_t x = static_cast<int>(0x100 + fx * 0x7f) & 0xff;
+    uint8_t y = static_cast<int>(0x100 + fy * 0x7f) & 0xff;
 
-    // [debug] capture the first signal sent to remove conversion noise.
+    /*
+    // [Test] 
+    // Capture the first signal sent to remove possible conversion noise.
+    // This could provoke issue when using demo random inputs so we 
+    // disable it.
     static uint8_t xx = x;
     static uint8_t yy = y;
-    x = uint8_t(x - xx) & 0xff;
-    y = uint8_t(y - yy) & 0xff;
+    x = (uint8_t(x - xx) + 0) & 0xff;
+    y = (uint8_t(y - yy) + 0) & 0xff;
+    */
 
     hid_input_report.x = x;
     hid_input_report.y = y;

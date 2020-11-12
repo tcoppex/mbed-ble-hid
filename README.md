@@ -12,9 +12,10 @@ The classes **HIDGamepadService**, **HIDKeyboardService**, and **HIDMouseService
 
 ## Example
 
-The available sample emulate a simple two-buttons mouse (motion and button states), using an `Arduino nano 33 BLE` and an `analog 2-axis joystick` with its X axis (*respectively Y*) set to analog input **6** (*respectively 7*) and its push button set to digital input **1**.
+The available sample emulate a simple two-buttons mouse using an `Arduino nano 33 BLE` and an `analog 2-axis joystick` with the X axis (*respectively Y*) set to analog input **6** (*respectively 7*) and the push button set to digital input **2**.
 
-By default the sample is set to *demo mode* and will output random motions for a few seconds after pairing. To disable *demo mode* you can set the macro definition **DEMO_ENABLE_RANDOM_INPUT** to 0.
+By default the sample is set to *demo mode* and will output random motions for a few seconds after pairing. 
+To disable *demo mode* you can set the macro definition **DEMO_ENABLE_RANDOM_INPUT** to 0.
 
 ## Known issues
 

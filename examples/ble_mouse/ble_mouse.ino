@@ -9,18 +9,14 @@
 ///
 
 #include <mbed.h>
-
 #include <DeviceInformationService.h>
 #include <BatteryService.h>
 
 #include "HIDMouseService.h"
 #include "AnalogJoystick.h"
 
-#define DEMO_ENABLE_RANDOM_INPUT      1
-#define DEMO_DURATION_MS              4200
-
-#define LED_BEACON_DURATION_MS          1250
-#define LED_ERROR_DURATION_MS           (LED_BEACON_DURATION_MS / 10)
+#define DEMO_ENABLE_RANDOM_INPUT        1
+#define DEMO_DURATION_MS                4200
 
 /* -------------------------------------------------------------------------- */
 
@@ -29,9 +25,11 @@ static const char kManufacturerName[]     = "Acme Interactive";
 static const char kGenericVersionString[] = "1234";
 static const int  kDefaultBatteryLevel    = 98;
 
-static const float kJoystickSensibility   = 0.09f;
+static const int kLedBeaconDelayMilliseconds = 1250;
+static const int kLedErrorDelayMilliseconds  = kLedBeaconDelayMilliseconds / 10;
+static const float kJoystickSensibility      = 0.125f;
 
-static const int kEventQueueSize          = 32 * EVENTS_EVENT_SIZE;
+static const int kEventQueueSize = 16 * EVENTS_EVENT_SIZE;
 static events::EventQueue eventQueue(kEventQueueSize);
 
 /* -------------------------------------------------------------------------- */
@@ -50,21 +48,28 @@ struct ble_hid_t : Gap::EventHandler
   bool connected = false;
   bool hasError = false;
 
-  // --------------------------------------
+  // -- EventHandler callbacks
 
-  void initialize(BLE &ble)
+  virtual void onConnectionComplete(const ble::ConnectionCompleteEvent &event) override
   {
-    /// Note :
-    /// when bonding is enabled, subsequent pairing after the initial one
-    /// all fails, it might be a security parameters issue. 
+    hasError = (BLE_ERROR_NONE != event.getStatus());
+    connected = !hasError;
+    if (connected) {
+      lastConnection = millis();
+    }
+  }
 
-    // Initialized Security manager with no Man-in-the-middle (MITM) protection.
-    ble.securityManager().init(
-      false,      // enable bonding.
-      false,      // disable MITM protection.
-      SecurityManager::IO_CAPS_NONE
-    );
+  virtual void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event) override
+  {
+    hasError  = false;
+    connected = false;
+    startAdvertising();
+  }
 
+  // -- Utility
+
+  void setupServices(BLE &ble)
+  {
     // Add BLE services for the HID-over-GATT Profile (HOGP).
     services.deviceInformation = new DeviceInformationService(ble,
       kManufacturerName,
@@ -76,39 +81,6 @@ struct ble_hid_t : Gap::EventHandler
     );
     services.battery = new BatteryService(ble, kDefaultBatteryLevel);
     services.hid = new HIDMouseService(ble);
-    
-    // GAP events callbacks.
-    Gap &gap = ble.gap();
-    gap.setEventHandler(this);
-
-    Gap::ConnectionParams_t params = {7, 15, 0, 3200};
-    gap.setPreferredConnectionParams(&params);
-
-    // GAP Advertising parameters.
-    {
-      using namespace ble;
-      
-      gap.setDeviceName((const uint8_t*)kDeviceName);
-      gap.setAppearance(GapAdvertisingData::MOUSE);
-
-      gap.setAdvertisingPayload(
-        LEGACY_ADVERTISING_HANDLE,
-        AdvertisingDataSimpleBuilder<LEGACY_ADVERTISING_MAX_SIZE>()
-          .setFlags(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE)
-          .setName(kDeviceName, true)
-          .setAppearance(adv_data_appearance_t::MOUSE)
-          .setLocalService(GattService::UUID_HUMAN_INTERFACE_DEVICE_SERVICE)
-          .getAdvertisingData()
-      );
-
-      gap.setAdvertisingParameters(
-        LEGACY_ADVERTISING_HANDLE,
-        AdvertisingParameters(advertising_type_t::CONNECTABLE_UNDIRECTED, adv_interval_t(millisecond_t(1000)))
-          .setPrimaryInterval(conn_interval_t(millisecond_t(30)), conn_interval_t(millisecond_t(50)))
-          .setOwnAddressType(own_address_type_t::RANDOM)
-          .setPhy(phy_t::LE_1M, phy_t::LE_CODED)
-      );
-    }
   }
 
   void startAdvertising() {
@@ -117,25 +89,6 @@ struct ble_hid_t : Gap::EventHandler
     }
   }
 
-  // -- EventHandler callbacks
-
-  virtual void onConnectionComplete(const ble::ConnectionCompleteEvent &event) override
-  {
-    if (event.getStatus() == BLE_ERROR_NONE) {
-      lastConnection = millis();
-      connected = true;
-      hasError  = false;
-    } else {
-      hasError = true;
-    }
-  }
-
-  virtual void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event) override
-  {
-    connected = false;
-    hasError  = false;
-    startAdvertising();
-  }
 } gDevice;
 
 // Analog Joystick helper used by the demo to simulate a mouse.
@@ -143,13 +96,15 @@ AnalogJoystick gJoystick(A7, A6, 2);
 
 /* -------------------------------------------------------------------------- */
 
-void bleScheduleEventsProcessing(BLE::OnEventsToProcessCallbackContext* context) 
+/* BLE events scheduling Callback */
+void bleScheduleEventsProcessing_cb(BLE::OnEventsToProcessCallbackContext* context) 
 {
   BLE &ble = BLE::Instance();
   eventQueue.call(mbed::Callback<void()>(&ble, &BLE::processEvents));
 }
 
-void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
+/* Post BLE initialization Callback */
+void bleInitComplete_cb(BLE::InitializationCompleteCallbackContext *params)
 {
   if (params->error != BLE_ERROR_NONE) {
     gDevice.hasError = true;
@@ -162,15 +117,81 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     return;
   }
 
-  gDevice.initialize(ble);
+  // Initialized Security manager with no Man-in-the-middle (MITM) protection.
+  // @note: When bonding is enabled subsequent pairing after the initial one
+  //        fail, it might be a security parameters issue. 
+  ble.securityManager().init(
+    false,      // disable bonding.
+    false,      // disable MITM protection.
+    SecurityManager::IO_CAPS_NONE
+  );
+
+  // Setup BLE services.
+  gDevice.setupServices(ble);
+
+  // GAP events callbacks.
+  Gap &gap = ble.gap();
+  gap.setEventHandler(&gDevice);
+
+  const Gap::ConnectionParams_t connectionParams = {
+    7,    // min conn interval
+    15,   // max conn interval
+    0,    // slave latency
+    3200  // supervision timeout
+  };
+  gap.setPreferredConnectionParams(&connectionParams);
+
+  // GAP Advertising parameters.
+  {
+    using namespace ble;
+    
+    gap.setDeviceName((const uint8_t*)kDeviceName);
+    gap.setAppearance(GapAdvertisingData::MOUSE);
+
+    gap.setAdvertisingPayload(
+      LEGACY_ADVERTISING_HANDLE,
+      AdvertisingDataSimpleBuilder<LEGACY_ADVERTISING_MAX_SIZE>()
+        .setFlags(GapAdvertisingData::BREDR_NOT_SUPPORTED 
+                | GapAdvertisingData::LE_GENERAL_DISCOVERABLE
+        )
+        .setName(kDeviceName, true)
+        .setAppearance(adv_data_appearance_t::MOUSE)
+        .setLocalService(GattService::UUID_HUMAN_INTERFACE_DEVICE_SERVICE)
+        .getAdvertisingData()
+    );
+
+    gap.setAdvertisingParameters(
+      LEGACY_ADVERTISING_HANDLE,
+      AdvertisingParameters(
+          advertising_type_t::CONNECTABLE_UNDIRECTED, 
+          adv_interval_t(millisecond_t(1000))
+        )
+        .setPrimaryInterval(
+          conn_interval_t(millisecond_t(15)), 
+          conn_interval_t(millisecond_t(50))
+        )
+        .setOwnAddressType(own_address_type_t::RANDOM)
+        .setPhy(phy_t::LE_1M, phy_t::LE_CODED)
+    );
+  }
+
   gDevice.startAdvertising();
 }
 
 /* -------------------------------------------------------------------------- */
 
-void connectionUpdate() 
+/* Task used by the event thread, bypassing the usual Arduino loop method. */
+void loopTask()
 {
-  // Capture analog joystick input.
+  // When disconnected : update the builtin LED.
+  if (!gDevice.connected) {
+    animateLED(LED_BUILTIN, (gDevice.hasError) ? kLedErrorDelayMilliseconds 
+                                               : kLedBeaconDelayMilliseconds);
+    return;
+  }
+  analogWrite(LED_BUILTIN, 30);
+  
+  // Read analog joystick input.
   gJoystick.Read();
 
   // Post-process inputs.
@@ -179,7 +200,7 @@ void connectionUpdate()
   auto buttons = gJoystick.button() ? HIDMouseService::BUTTON_LEFT 
                                     : HIDMouseService::BUTTON_NONE;
 
-  // When demo mode is enabled we bypassed the captured values to output random noises.
+  // When demo mode is enabled we bypass the captured values to output random noises.
 #if DEMO_ENABLE_RANDOM_INPUT
   if ((millis() - gDevice.lastConnection) < DEMO_DURATION_MS)
   {
@@ -201,39 +222,18 @@ void connectionUpdate()
   mouse->SendReport();
 }
 
-/* Task used by the event thread, bypassing the usual Arduino loop method. */
-void loopTask()
-{
-  // Update the builtin LED.
-  if (!gDevice.connected) {
-    if (gDevice.hasError) {
-      // Quick beaconing signal an error.
-      animateLED(LED_BUILTIN, LED_ERROR_DURATION_MS);
-    } else {
-      // Animate the main LED while searching for a connection.
-      animateLED(LED_BUILTIN, LED_BEACON_DURATION_MS);
-    } 
-    return;
-  }
-  analogWrite(LED_BUILTIN, 30);
-  
-  connectionUpdate();
-}
-
 /* -------------------------------------------------------------------------- */
 
 void setup()
 {
-  // App specific initializations.
+  // General Setup.
   pinMode(LED_BUILTIN, OUTPUT);
   gJoystick.Calibrate();
 
-  // ---
-
   // Initialize the BLE device.
   BLE &ble = BLE::Instance();
-  ble.onEventsToProcess(bleScheduleEventsProcessing);
-  ble.init(bleInitComplete);
+  ble.onEventsToProcess(bleScheduleEventsProcessing_cb);
+  ble.init(bleInitComplete_cb);
 
   // Bypass the Arduino loop for an update event call.
   eventQueue.call_every(10, loopTask);

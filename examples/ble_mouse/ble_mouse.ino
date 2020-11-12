@@ -16,14 +16,11 @@
 #include "HIDMouseService.h"
 #include "AnalogJoystick.h"
 
-//#define ENABLE_RANDOM_INPUT
+#define DEMO_ENABLE_RANDOM_INPUT      1
+#define DEMO_DURATION_MS              4200
 
-/* -------------------------------------------------------------------------- */
-
-static const int kEventQueueSize = 16 * EVENTS_EVENT_SIZE;
-static events::EventQueue eventQueue(kEventQueueSize);
-
-AnalogJoystick ajoy(A7, A6, 2);
+#define LED_BEACON_DURATION_MS          1250
+#define LED_ERROR_DURATION_MS           (LED_BEACON_DURATION_MS / 10)
 
 /* -------------------------------------------------------------------------- */
 
@@ -31,6 +28,13 @@ static const char kDeviceName[]           = "nano33BLE HID";
 static const char kManufacturerName[]     = "Acme Interactive";
 static const char kGenericVersionString[] = "1234";
 static const int  kDefaultBatteryLevel    = 98;
+
+static const float kJoystickSensibility   = 0.09f;
+
+static const int kEventQueueSize          = 32 * EVENTS_EVENT_SIZE;
+static events::EventQueue eventQueue(kEventQueueSize);
+
+/* -------------------------------------------------------------------------- */
 
 struct ble_hid_t : Gap::EventHandler 
 {
@@ -42,19 +46,22 @@ struct ble_hid_t : Gap::EventHandler
     HIDService *hid;
   } services;
 
+  unsigned long lastConnection = 0;
   bool connected = false;
+  bool hasError = false;
 
-
-  static void StartAdvertising() {
-    BLE::Instance().gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE);
-  }
+  // --------------------------------------
 
   void initialize(BLE &ble)
   {
+    /// Note :
+    /// when bonding is enabled, subsequent pairing after the initial one
+    /// all fails, it might be a security parameters issue. 
+
     // Initialized Security manager with no Man-in-the-middle (MITM) protection.
     ble.securityManager().init(
-      true,     // enable bonding.
-      false,    // disable MITM protection.
+      false,      // enable bonding.
+      false,      // disable MITM protection.
       SecurityManager::IO_CAPS_NONE
     );
 
@@ -96,7 +103,7 @@ struct ble_hid_t : Gap::EventHandler
 
       gap.setAdvertisingParameters(
         LEGACY_ADVERTISING_HANDLE,
-        AdvertisingParameters(advertising_type_t::CONNECTABLE_UNDIRECTED, true)
+        AdvertisingParameters(advertising_type_t::CONNECTABLE_UNDIRECTED, adv_interval_t(millisecond_t(1000)))
           .setPrimaryInterval(conn_interval_t(millisecond_t(30)), conn_interval_t(millisecond_t(50)))
           .setOwnAddressType(own_address_type_t::RANDOM)
           .setPhy(phy_t::LE_1M, phy_t::LE_CODED)
@@ -104,20 +111,35 @@ struct ble_hid_t : Gap::EventHandler
     }
   }
 
+  void startAdvertising() {
+    if (BLE::Instance().gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE)) {
+      hasError = true;
+    }
+  }
+
   // -- EventHandler callbacks
 
-  void onConnectionComplete(const ble::ConnectionCompleteEvent &event)
+  virtual void onConnectionComplete(const ble::ConnectionCompleteEvent &event) override
   {
-    connected = true;
-    analogWrite(LED_BUILTIN, 30);
+    if (event.getStatus() == BLE_ERROR_NONE) {
+      lastConnection = millis();
+      connected = true;
+      hasError  = false;
+    } else {
+      hasError = true;
+    }
   }
 
-  void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
+  virtual void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event) override
   {
     connected = false;
-    StartAdvertising();
+    hasError  = false;
+    startAdvertising();
   }
 } gDevice;
+
+// Analog Joystick helper used by the demo to simulate a mouse.
+AnalogJoystick gJoystick(A7, A6, 2);
 
 /* -------------------------------------------------------------------------- */
 
@@ -130,16 +152,18 @@ void bleScheduleEventsProcessing(BLE::OnEventsToProcessCallbackContext* context)
 void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
 {
   if (params->error != BLE_ERROR_NONE) {
+    gDevice.hasError = true;
     return;
   }
  
   BLE &ble = params->ble;  
   if (ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+    gDevice.hasError = true;
     return;
   }
 
   gDevice.initialize(ble);
-  gDevice.StartAdvertising();
+  gDevice.startAdvertising();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -147,19 +171,27 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
 void connectionUpdate() 
 {
   // Capture analog joystick input.
-  ajoy.Read();
+  gJoystick.Read();
 
   // Post-process inputs.
-  const float sensitivity = 0.09f;
-  float fx = sensitivity * ajoy.x();
-  float fy = sensitivity * ajoy.y();
-  auto buttons = ajoy.button() ? HIDMouseService::BUTTON_LEFT 
-                               : HIDMouseService::BUTTON_NONE;
+  float fx = kJoystickSensibility * gJoystick.x();
+  float fy = kJoystickSensibility * gJoystick.y();
+  auto buttons = gJoystick.button() ? HIDMouseService::BUTTON_LEFT 
+                                    : HIDMouseService::BUTTON_NONE;
 
-#ifdef ENABLE_RANDOM_INPUT
-  fx = random(-sensitivity, +sensitivity);
-  fy = random(-sensitivity, +sensitivity);
-  buttons = HIDMouseService::BUTTON_NONE;
+  // When demo mode is enabled we bypassed the captured values to output random noises.
+#if DEMO_ENABLE_RANDOM_INPUT
+  if ((millis() - gDevice.lastConnection) < DEMO_DURATION_MS)
+  {
+    fx = kJoystickSensibility * randf();
+    fy = kJoystickSensibility * randf();
+    buttons = HIDMouseService::BUTTON_NONE;
+  }
+  else
+  {
+    fx = 0.0f;
+    fy = 0.0f;
+  }
 #endif
 
   // Update and send the HID report.
@@ -169,21 +201,42 @@ void connectionUpdate()
   mouse->SendReport();
 }
 
+/* Task used by the event thread, bypassing the usual Arduino loop method. */
+void loopTask()
+{
+  // Update the builtin LED.
+  if (!gDevice.connected) {
+    if (gDevice.hasError) {
+      // Quick beaconing signal an error.
+      animateLED(LED_BUILTIN, LED_ERROR_DURATION_MS);
+    } else {
+      // Animate the main LED while searching for a connection.
+      animateLED(LED_BUILTIN, LED_BEACON_DURATION_MS);
+    } 
+    return;
+  }
+  analogWrite(LED_BUILTIN, 30);
+  
+  connectionUpdate();
+}
+
 /* -------------------------------------------------------------------------- */
 
 void setup()
 {
+  // App specific initializations.
   pinMode(LED_BUILTIN, OUTPUT);
+  gJoystick.Calibrate();
 
-  ajoy.Calibrate();
+  // ---
 
   // Initialize the BLE device.
   BLE &ble = BLE::Instance();
   ble.onEventsToProcess(bleScheduleEventsProcessing);
   ble.init(bleInitComplete);
 
-  // Transform the Arduino loop to an update event call.
-  eventQueue.call_every(10, loop);
+  // Bypass the Arduino loop for an update event call.
+  eventQueue.call_every(10, loopTask);
 
   // Launch a new thread for handling events.
   rtos::Thread eventThread;
@@ -195,12 +248,7 @@ void setup()
 
 void loop()
 {
-  if (gDevice.connected) {
-    connectionUpdate();
-  } else {
-    // Animate the main LED while searching for a connection.
-    animateLED(LED_BUILTIN, 750);
-  }
+  // unused
 }
 
 /* -------------------------------------------------------------------------- */

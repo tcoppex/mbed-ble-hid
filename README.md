@@ -55,7 +55,7 @@ To develop your own HID you will need to derive the **HIDService** class and def
 
 Once you have written your HID service you have two options :
 
-If your service has a single parameter constructor you can directly use the *Nano33BleHID<T>* wrapper template to create your bluetooth HID :
+1) If your service has a single parameter constructor you can directly use the *Nano33BleHID<T>* wrapper template to create your bluetooth HID :
 ```cpp
 #include "Nano33BleHID.h"
 
@@ -71,7 +71,7 @@ class HIDSampleService : HIDService {
 Nano33BleHID<HIDSampleService> sampleHID;
 ```
 
-Alternatively you can derive your HID from the base class `MbedBleHID` for more complex cases :
+2) Alternatively you can derive your HID from the base class `MbedBleHID` for more complex cases :
 ```cpp
 #include "MbedBleHID.h"
 
@@ -93,7 +93,7 @@ SampleHID mySampleHID;
 
 ### ble_mouse
 
-This sample emulate a simple two-buttons mouse (motion and button states), using an `Arduino nano 33 BLE` and an `analog 2-axis joystick` with its X axis (*respectively Y*) set to analog input **6** (*respectively 7*) and its push button set to digital input **1**.
+This sample emulate a simple two-buttons mouse (motion and button states), using an `Arduino nano 33 BLE` and an `analog 2-axis joystick` with its X axis (*respectively Y*) set to analog input **6** (*respectively 7*) and its push button set to digital input **2**.
 
 By default the sample is set to *demo mode* and will output random motions for a few seconds after pairing.
 
@@ -101,7 +101,7 @@ To disable *demo mode* you can set the macro definition **DEMO_ENABLE_RANDOM_INP
 
 ## Known limitations
 
-*Boot protocol*, which allows for mouses and keyboards to be used on a basic boot system, are layed out but not implemented.
+*Boot protocol*, which allows for mouses and keyboards to be used on a boot level, are laid out but not implemented.
 
 ## Acknowledgment
 

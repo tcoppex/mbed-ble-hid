@@ -23,14 +23,15 @@ class AnalogJoystick {
     button_(0)
   {}
 
-  /* To call once at joystick initialization */
-  void Calibrate(int numSamples = kDefaultCalibrationSamples, int samplingDelay = kDefaultCalibrationSamplingDelay)
+  /* To call once to calibrate joysticks. */
+  void initialize(int numSamples = kDefaultCalibrationSamples,
+                  int samplingDelay = kDefaultCalibrationSamplingDelay)
   {
     calibration_x_ = 0.0f;
     calibration_y_ = 0.0f;
     for (int i = 0; i < numSamples; ++i)
     {
-      Read(false);
+      update(false);
       calibration_x_ += x_;
       calibration_y_ += y_;
       delay(samplingDelay);
@@ -42,7 +43,7 @@ class AnalogJoystick {
     y_ = calibration_y_;
   }
 
-  void Read(bool filter=true)
+  void update(bool bFilter=true)
   {    
     x_ = analogRead(pin_x_);
     y_ = analogRead(pin_y_);
@@ -54,8 +55,8 @@ class AnalogJoystick {
     
     button_ = !digitalRead(pin_button_);
 
-    if (filter) {
-      Filter();
+    if (bFilter) {
+      filter();
     }
   }
 
@@ -72,7 +73,7 @@ class AnalogJoystick {
   }
 
  private:
-  void Filter()
+  void filter()
   {
     float last_x = x_;
     float last_y = y_;

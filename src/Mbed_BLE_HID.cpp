@@ -16,8 +16,8 @@ void bleScheduleEventsProcessing(BLE::OnEventsToProcessCallbackContext* context)
   eventQueue.call(mbed::Callback<void()>(&ble, &BLE::processEvents));
 }
 
-// Redefine Arduino millis() method for MbedOS.
-#ifndef millis
+// Redefine Arduino millis() method when on PlatformIO...
+#ifdef PLATFORMIO
 uint32_t millis() {
   static mbed::Timer sTimer;
   static bool bInit(false);

@@ -16,7 +16,7 @@ Alternatively you can also use [platformio](https://github.com/platformio) / [De
 The header `Nano33BleHID.h` defines three basic HID ready to use : Mouse, Keyboard, and Gamepad.
 
 ```cpp
-#include "Nano33BleHID.H"
+#include "Nano33BleHID.h"
 
 // Alias to Nano33BleHID<HIDGamepadService>
 Nano33BleGamepad pad("SuperAwesome Pad");
@@ -35,10 +35,10 @@ void loop() {
 
     // Update internal values.
     float theta = PI * (random(255) / 255.0);
-    hid.motion(cos(theta), sin(theta));
+    hid->motion(cos(theta), sin(theta));
 
     // Send them !
-    hid.SendReport();
+    hid->SendReport();
 }
 ```
 

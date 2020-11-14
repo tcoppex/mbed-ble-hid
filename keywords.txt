@@ -6,43 +6,43 @@
 # Datatypes (KEYWORD1)
 ###########################################
 
-BasicMbedBleHID     KEYWORD1
-MbedBleHID          KEYWORD1
+BasicMbedBleHID	KEYWORD1
+MbedBleHID	KEYWORD1
 
-HIDService          KEYWORD1
-HIDMouseService     KEYWORD1
-HIDKeyboardService  KEYWORD1
-HIDGamepadService   KEYWORD1
+HIDService	KEYWORD1
+HIDMouseService	KEYWORD1
+HIDKeyboardService	KEYWORD1
+HIDGamepadService	KEYWORD1
 
-Nano33BleHID        KEYWORD1
-Nano33BleMouse      KEYWORD1
-Nano33BleKeyboard   KEYWORD1
-Nano33BleGamepad    KEYWORD1
+Nano33BleHID	KEYWORD1
+Nano33BleMouse	KEYWORD1
+Nano33BleKeyboard	KEYWORD1
+Nano33BleGamepad	KEYWORD1
 
 ###########################################
 # Methods and Functions (KEYWORD2)
 ###########################################
 
-SendReport      KEYWORD2
+SendReport	KEYWORD2
 
-motion          KEYWORD2
-button          KEYWORD2
+motion	KEYWORD2
+button	KEYWORD2
 
-keyup           KEYWORD2
-keydown         KEYWORD2
+keyup	KEYWORD2
+keydown	KEYWORD2
 
-MbedBleHID_RunEventThread   KEYWORD2
+MbedBleHID_RunEventThread	KEYWORD2
 
 ###########################################
 # Constants (LITERAL1)
 ###########################################
 
-BUTTON_NONE     LITERAL1
-BUTTON_LEFT     LITERAL1
-BUTTON_RIGHT    LITERAL1
-BUTTON_MIDDLE   LITERAL1
+BUTTON_NONE	LITERAL1
+BUTTON_LEFT	LITERAL1
+BUTTON_RIGHT	LITERAL1
+BUTTON_MIDDLE	LITERAL1
 
-KEY_NONE        LITERAL1
-KEY_CTRL        LITERAL1
-KEY_SHIFT       LITERAL1
-KEY_ALT         LITERAL1
+KEY_NONE	LITERAL1
+KEY_CTRL	LITERAL1
+KEY_SHIFT	LITERAL1
+KEY_ALT	LITERAL1

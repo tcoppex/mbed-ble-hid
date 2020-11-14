@@ -3,10 +3,9 @@
 
 #if BLE_FEATURE_GATT_SERVER
 
-#include "platform/mbed_assert.h"
-#include "ble/BLE.h"
-
-#include "USBHID_Types.h"
+#include <platform/mbed_assert.h>
+#include <ble/BLE.h>
+#include <USBHID_Types.h>
 
 /* -------------------------------------------------------------------------- */
 
@@ -237,6 +236,11 @@ class HIDService {
     );
     ble.gattServer().addService(hidService);
   }
+
+  virtual ~HIDService() {}
+
+  /** Defines how the device will appeared in bluetooth managers. */
+  virtual ble::adv_data_appearance_t appearance() const = 0; 
 
   void SendReport()
   {

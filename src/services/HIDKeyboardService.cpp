@@ -1,5 +1,222 @@
+#include <array>
+
 #include <mbed.h>
 #include "services/HIDKeyboardService.h"
+#include "services/keylayouts.h"
+
+/* -------------------------------------------------------------------------- */
+
+namespace {
+
+/* Map a character to its layout keycode. */
+std::array<KeyCode_t, 182> s_keyLUT{
+    0,             /* NUL */
+    0,             /* SOH */
+    0,             /* STX */
+    0,             /* ETX */
+    0,             /* EOT */
+    0,             /* ENQ */
+    0,             /* ACK */
+    0,             /* BEL */
+    KEYCODE_BACKSPACE,
+    KEYCODE_TAB,
+    KEYCODE_ENTER,
+    0,             /* VT  */
+    0,             /* FF  */
+    0,             /* CR  */
+    0,             /* SO  */
+    0,             /* SI  */
+    0,             /* DEL */
+    0,             /* DC1 */
+    0,             /* DC2 */
+    0,             /* DC3 */
+    0,             /* DC4 */
+    0,             /* NAK */
+    0,             /* SYN */
+    0,             /* ETB */
+    0,             /* CAN */
+    0,             /* EM  */
+    0,             /* SUB */
+    KEYCODE_ESC,   /* ESC */
+    0,             /* FS  */
+    0,             /* GS  */
+    0,             /* RS  */
+    0,             /* US  */
+    ASCII_20,      /*   */
+    ASCII_21,      /* ! */
+    ASCII_22,      /* " */
+    ASCII_23,      /* # */
+    ASCII_24,      /* $ */
+    ASCII_25,      /* % */
+    ASCII_26,      /* & */
+    ASCII_27,      /* ' */
+    ASCII_28,      /* ( */
+    ASCII_29,      /* ) */
+    ASCII_2A,      /* * */
+    ASCII_2B,      /* + */
+    ASCII_2C,      /* , */
+    ASCII_2D,      /* - */
+    ASCII_2E,      /* . */
+    ASCII_2F,      /* / */
+    ASCII_30,      /* 0 */
+    ASCII_31,      /* 1 */
+    ASCII_32,      /* 2 */
+    ASCII_33,      /* 3 */
+    ASCII_34,      /* 4 */
+    ASCII_35,      /* 5 */
+    ASCII_36,      /* 6 */
+    ASCII_37,      /* 7 */
+    ASCII_38,      /* 8 */
+    ASCII_39,      /* 9 */
+    ASCII_3A,      /* : */
+    ASCII_3B,      /* ; */
+    ASCII_3C,      /* < */
+    ASCII_3D,      /* = */
+    ASCII_3E,      /* > */
+    ASCII_3F,      /* ? */
+    ASCII_40,      /* @ */
+    ASCII_41,      /* A */
+    ASCII_42,      /* B */
+    ASCII_43,      /* C */
+    ASCII_44,      /* D */
+    ASCII_45,      /* E */
+    ASCII_46,      /* F */
+    ASCII_47,      /* G */
+    ASCII_48,      /* H */
+    ASCII_49,      /* I */
+    ASCII_4A,      /* J */
+    ASCII_4B,      /* K */
+    ASCII_4C,      /* L */
+    ASCII_4D,      /* M */
+    ASCII_4E,      /* N */
+    ASCII_4F,      /* O */
+    ASCII_50,      /* P */
+    ASCII_51,      /* Q */
+    ASCII_52,      /* R */
+    ASCII_53,      /* S */
+    ASCII_54,      /* T */
+    ASCII_55,      /* U */
+    ASCII_56,      /* V */
+    ASCII_57,      /* W */
+    ASCII_58,      /* X */
+    ASCII_59,      /* Y */
+    ASCII_5A,      /* Z */
+    ASCII_5B,      /* [ */
+    ASCII_5C,      /* \ */
+    ASCII_5D,      /* ] */
+    ASCII_5E,      /* ^ */
+    ASCII_5F,      /* _ */
+    ASCII_60,      /* ` */
+    ASCII_61,      /* a */
+    ASCII_62,      /* b */
+    ASCII_63,      /* c */
+    ASCII_64,      /* d */
+    ASCII_65,      /* e */
+    ASCII_66,      /* f */
+    ASCII_67,      /* g */
+    ASCII_68,      /* h */
+    ASCII_69,      /* i */
+    ASCII_6A,      /* j */
+    ASCII_6B,      /* k */
+    ASCII_6C,      /* l */
+    ASCII_6D,      /* m */
+    ASCII_6E,      /* n */
+    ASCII_6F,      /* o */
+    ASCII_70,      /* p */
+    ASCII_71,      /* q */
+    ASCII_72,      /* r */
+    ASCII_73,      /* s */
+    ASCII_74,      /* t */
+    ASCII_75,      /* u */
+    ASCII_76,      /* v */
+    ASCII_77,      /* w */
+    ASCII_78,      /* x */
+    ASCII_79,      /* y */
+    ASCII_7A,      /* z */
+    ASCII_7B,      /*  */
+    ASCII_7C,      /* | */
+    ASCII_7D,      /* } */
+    ASCII_7E,      /* ~ */
+    ASCII_7F,      /* DEL */
+ 
+    KEYCODE_F1,
+    KEYCODE_F2,
+    KEYCODE_F3,
+    KEYCODE_F4,
+    KEYCODE_F5,
+    KEYCODE_F6,
+    KEYCODE_F7,
+    KEYCODE_F8,
+    KEYCODE_F9,
+    KEYCODE_F10,
+    KEYCODE_F11,
+    KEYCODE_F12,
+    KEYCODE_PRINTSCREEN,
+    KEYCODE_SCROLL_LOCK,
+    KEYCODE_CAPS_LOCK,
+    KEYCODE_NUM_LOCK,
+    KEYCODE_INSERT,
+    KEYCODE_HOME,
+    KEYCODE_PAGE_UP,
+    KEYCODE_PAGE_DOWN,
+    KEYCODE_RIGHT,
+    KEYCODE_LEFT,
+    KEYCODE_DOWN,
+    KEYCODE_UP,
+
+    KEYCODE_KP_SLASH,
+    KEYCODE_KP_ASTERIX,
+    KEYCODE_KP_MINUS,
+    KEYCODE_KP_PLUS,
+    KEYCODE_KP_ENTER,
+    KEYCODE_KP_1,
+    KEYCODE_KP_2,
+    KEYCODE_KP_3,
+    KEYCODE_KP_4,
+    KEYCODE_KP_5,
+    KEYCODE_KP_6,
+    KEYCODE_KP_7,
+    KEYCODE_KP_8,
+    KEYCODE_KP_9,
+    KEYCODE_KP_0,
+    KEYCODE_KP_PERIOD,
+    KEYCODE_NON_US_BS,
+    KEYCODE_MENU,
+    KEYCODE_F13,
+    KEYCODE_F14,
+    KEYCODE_F15,
+    KEYCODE_F16,
+    KEYCODE_F17,
+    KEYCODE_F18,
+    KEYCODE_F19,
+    KEYCODE_F20,
+    KEYCODE_F21,
+    KEYCODE_F22,
+    KEYCODE_F23,
+    KEYCODE_F24,
+};
+
+} // namespace ""
+
+/* -------------------------------------------------------------------------- */
+
+KeySym_t::KeySym_t(KeyCode_t _keycode)
+  : usage(0)
+  , modifiers(0)
+{
+  _keycode &= KEYCODE_MASK;
+  
+  if (_keycode > ALTGR_MASK) {
+    _keycode -= ALTGR_MASK;
+    modifiers |= Modifier::KEY_ALT;
+  }
+  if (_keycode > SHIFT_MASK) {
+    _keycode -= SHIFT_MASK;
+    modifiers |= Modifier::KEY_SHIFT;
+  }
+
+  usage = (_keycode & 0xff);
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -113,9 +330,22 @@ HIDKeyboardService::HIDKeyboardService(BLE &_ble) :
              sizeof(output_report_ref_descs) / sizeof(*output_report_ref_descs))
 {}
 
-void HIDKeyboardService::keydown(uint8_t key, Modifier modifiers) {
-  hid_input_report.modifiers    = modifiers;
-  hid_input_report.key_codes[0] = key;
+KeySym_t HIDKeyboardService::charToKeySym(unsigned char c) const {
+  auto keycode = (c < s_keyLUT.size()) ? s_keyLUT[c] : DEADKEYS_MASK;
+  return KeySym_t(keycode);
+}
+
+void HIDKeyboardService::sendCharacter(unsigned char c) {
+  const auto keysym = charToKeySym(c);
+  keydown(keysym);
+  SendReport();
+  keyup();
+  SendReport(); 
+}
+
+void HIDKeyboardService::keydown(KeySym_t keysym) {
+  hid_input_report.modifiers    = keysym.modifiers;
+  hid_input_report.key_codes[0] = keysym.usage;
 }
 
 void HIDKeyboardService::keyup() {

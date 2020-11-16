@@ -31,7 +31,7 @@ void setup() {
 
 void loop() {
     // Retrieve the HID service handle.
-    auto hid = pad.hid();
+    auto *hid = pad.hid();
 
     // Update internal values.
     float theta = PI * (random(255) / 255.0);
@@ -99,6 +99,12 @@ By default the sample is set to *demo mode* and will output random motions for a
 
 To disable *demo mode* you can set the macro definition **DEMO_ENABLE_RANDOM_INPUT** to 0.
 
+### ble_shining_kb
+
+Simulate a ghost writer by repeating a sentence over and over again.
+
+By default the keyboard layout is set to **LAYOUT_US_INTERNATIONAL**, you can change it by uncommenting the desired layout in [*src/services/keylayouts.h*](https://github.com/tcoppex/mbed-ble-hid/blob/master/src/services/keylayouts.h).
+
 ## Known limitations
 
 *Boot protocol*, which allows for mouses and keyboards to be used on a boot level, are laid out but not implemented.
@@ -111,8 +117,10 @@ This project has benefited from the following resources :
 * [Nordic semiconductor SDK 16](http://developer.nordicsemi.com/nRF5_SDK/nRF5_SDK_v16.x.x/)
 * [BLEKeyboard](https://github.com/bitbank2/BLE_Keyboard) by bitbank2
 * [BLE_HID](https://github.com/jpbrucker/BLE_HID) by jpbrucker
+* The `keyboards layout` is a slightly modified version from @PaulStoffregen [teensy](https://github.com/PaulStoffregen/cores/blob/master/teensy/keylayouts.h).
 
 You might want to look at jpbrucker's implementation for a well documented but deprecated alternative.
+
 
 ## References
 

@@ -2,13 +2,13 @@
 
 This project provides a simple library to implement *Human Interface Device* (**HID**) for *Bluetooth Low Energy* (**BLE**) on a Mbed stack using the *HID Over GATT Profile* (**HOGP**). 
 
-It was designed for the **Arduino nano 33 BLE** and tested on _GNU/Linux, Android 8.0, and Windows 10_.
+It was designed for the **Arduino nano 33 BLE** and tested with _GNU/Linux, Android 8.0, and Windows 10_.
 
 ## Environment
 
 On the Arduino IDE you will need the **Arduino nRF528x boards (Mbed OS)** with version **1.1.6** (In the menu bar click on "_Tools > Boards > Boards manager.._").
 
-Alternatively you can also use [platformio](https://github.com/platformio) / [Deviot](https://github.com/platformio/Deviot).
+Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot).
 
 
 ## Getting started
@@ -101,26 +101,26 @@ To disable *demo mode* you can set the macro definition **DEMO_ENABLE_RANDOM_INP
 
 ### ble_shining_kb
 
-Simulate a ghost writer by repeating a sentence over and over again.
+Simulate a ghost writer repeating a sentence over and over again.
 
 By default the keyboard layout is set to **LAYOUT_US_INTERNATIONAL**, you can change it by uncommenting the desired layout in [*src/services/keylayouts.h*](https://github.com/tcoppex/mbed-ble-hid/blob/master/src/services/keylayouts.h).
 
 ## Known limitations
 
-*Boot protocol*, which allows for mouses and keyboards to be used on a boot level, are laid out but not implemented.
+*Boot protocol*, which allows mouses and keyboards to be used on a boot level, is laid out but not implemented.
 
 ## Acknowledgment
 
 This project has benefited from the following resources :
 
-* mbed Microcontroller Library samples
-* [Nordic semiconductor SDK 16](http://developer.nordicsemi.com/nRF5_SDK/nRF5_SDK_v16.x.x/)
-* [BLEKeyboard](https://github.com/bitbank2/BLE_Keyboard) by bitbank2
-* [BLE_HID](https://github.com/jpbrucker/BLE_HID) by jpbrucker
-* The `keyboards layout` is a slightly modified version from @PaulStoffregen [teensy](https://github.com/PaulStoffregen/cores/blob/master/teensy/keylayouts.h).
+* mbed Microcontroller Library samples,
+* [Nordic semiconductor SDK 16](http://developer.nordicsemi.com/nRF5_SDK/nRF5_SDK_v16.x.x/),
+* [BLEKeyboard](https://github.com/bitbank2/BLE_Keyboard) by bitbank2,
+* [BLE_HID](https://github.com/jpbrucker/BLE_HID) by jpbrucker.
 
 You might want to look at jpbrucker's implementation for a well documented but deprecated alternative.
 
+The file `keylayouts.h` is a slightly modified version from @PaulStoffregen [teensyduino](https://github.com/PaulStoffregen/cores/blob/master/teensy/keylayouts.h) project.
 
 ## References
 

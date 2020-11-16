@@ -1,5 +1,7 @@
 ///
 ///   ble_mouse.ino
+///
+///   created: 2020-05
 ///   
 ///  Create a wireless Human Interface Device (HID) using the Bluetooth Low-Energy (BLE) 
 ///  HID-over-GATT Profile (HOGP) on a mbed stack (Arduino nano 33 BLE).
@@ -7,6 +9,7 @@
 
 #include "Nano33BleHID.h"
 #include "AnalogJoystick.h"
+#include "signal_utils.h"
 
 #define DEMO_ENABLE_RANDOM_INPUT        1
 #define DEMO_DURATION_MS                4200
@@ -66,8 +69,8 @@ void loop()
 #if DEMO_ENABLE_RANDOM_INPUT
   if (bleMouse.connection_time() < DEMO_DURATION_MS)
   {
-    fx = kJoystickSensibility * randf();
-    fy = kJoystickSensibility * randf();
+    fx = kJoystickSensibility * randf(-1.0f, 1.0f);
+    fy = kJoystickSensibility * randf(-1.0f, 1.0f);
     buttons = HIDMouseService::BUTTON_NONE;
   }
   else
@@ -78,7 +81,7 @@ void loop()
 #endif
 
   // Update the HID report.
-  auto mouse = bleMouse.hid();
+  auto *mouse = bleMouse.hid();
   mouse->motion(fx, fy);
   mouse->button(buttons);
   mouse->SendReport();

@@ -1,14 +1,21 @@
+#ifndef SIGNAL_UTILS_H_
+#define SIGNAL_UTILS_H_
+
 /*  
   Sets of simple signals processing routines used for a smoother user experience. 
 */
 
-#pragma once
-
 /* -------------------------------------------------------------------------- */
+
+namespace {
 
 /* Return the value x clamped between edge0 and edge1. */
 float clamp(float x, float edge0, float edge1) {
   return min( edge1, max(edge0, x));
+}
+
+float step(float a, float x) {
+  return (a <= x) ? 1.0f : 0.0f;
 }
 
 /* Approximate smooth interpolation of value x from [edge0, edge1] to [0, 1]. */
@@ -44,18 +51,14 @@ void animateLED(int pin, float delay=1000.0f) {
   analogWrite(pin, int(255 * smoothcurve(tick(delay))));
 }
 
-/* Smoother interpolation of animateLED. */
-void animateLED2(int pin, float delay) {
-  float x = fmodf(millis(), delay) / delay;
-  float sx = 16.f*x*x*(x-1.f)*(x-1.f);
-  analogWrite(pin, int(255 * sx));
+/* Returns a random floating point value in a range. */
+float randf(float edge0=0.0f, float edge1=1.0f) {
+  float n = random(RAND_MAX) / static_cast<float>(RAND_MAX-1);
+  return lerp(edge0, edge1, n);
 }
+
+} // namespace
 
 /* -------------------------------------------------------------------------- */
 
-float randf() {
-  float r = random(RAND_MAX) / static_cast<float>(RAND_MAX-1);
-  return 2.0f*r - 1.0f;
-}
-
-/* -------------------------------------------------------------------------- */
+#endif // SIGNAL_UTILS_H_

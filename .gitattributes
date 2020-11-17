@@ -1,0 +1,2 @@
+# Properly detect languages on Github
+*.h linguist-language=cpp

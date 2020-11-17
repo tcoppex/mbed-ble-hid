@@ -37,12 +37,6 @@
 #ifndef KEYLAYOUTS_H__
 #define KEYLAYOUTS_H__
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 //#define LAYOUT_US_ENGLISH
 //#define LAYOUT_CANADIAN_FRENCH
 //#define LAYOUT_CANADIAN_MULTILINGUAL
@@ -5780,10 +5774,5 @@ extern "C"{
 #define KEYCODE_EXTRA51 KEYCODE_E + ALTGR_MASK
 
 #endif // LAYOUT_SERBIAN_LATIN_ONLY
-
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
 
 #endif

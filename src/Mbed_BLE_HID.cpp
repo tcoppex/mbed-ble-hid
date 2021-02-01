@@ -102,14 +102,6 @@ void MbedBleHID::postInitialization(BLE &ble)
   Gap &gap = ble.gap();
   gap.setEventHandler(this);
 
-  const Gap::ConnectionParams_t connectionParams = {
-    7,          // min conn interval
-    15,         // max conn interval
-    0,          // slave latency
-    3200        // supervision timeout
-  };
-  gap.setPreferredConnectionParams(&connectionParams);
-
   // GAP Advertising parameters.
   {
     using namespace ble;
@@ -117,8 +109,8 @@ void MbedBleHID::postInitialization(BLE &ble)
     gap.setAdvertisingPayload(
       LEGACY_ADVERTISING_HANDLE,
       AdvertisingDataSimpleBuilder<LEGACY_ADVERTISING_MAX_SIZE>()
-        .setFlags(GapAdvertisingData::BREDR_NOT_SUPPORTED 
-                | GapAdvertisingData::LE_GENERAL_DISCOVERABLE
+        .setFlags(adv_data_flags_t::BREDR_NOT_SUPPORTED 
+                | adv_data_flags_t::LE_GENERAL_DISCOVERABLE
         )
         .setName(kDeviceName_.c_str(), true)
         .setAppearance(services_.hid->appearance())

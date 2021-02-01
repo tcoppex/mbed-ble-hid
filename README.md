@@ -6,7 +6,7 @@ It was designed for the **Arduino nano 33 BLE** and tested with _GNU/Linux, Andr
 
 ## Environment
 
-On the Arduino IDE you will need the **Arduino nRF528x boards (Mbed OS)** with version **1.1.6** (In the menu bar click on "_Tools > Boards > Boards manager.._").
+On the Arduino IDE you will need the **Arduino mbed-enabled Boards** with version **1.3.1** or higher (In the menu bar click on "_Tools > Boards > Boards manager.._").
 
 Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot).
 

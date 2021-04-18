@@ -2,13 +2,13 @@
 
 This project provides a simple library to implement *Human Interface Device* (**HID**) for *Bluetooth Low Energy* (**BLE**) on a Mbed stack using the *HID Over GATT Profile* (**HOGP**). 
 
-It was designed for the **Arduino nano 33 BLE** and tested with _GNU/Linux, Android 8.0, and Windows 10_.
+It was designed for the **Arduino nano 33 BLE** and tested with _GNU/Linux, Android 8.0, iOS, and Windows 10_.
 
 ## Environment
 
-On the Arduino IDE you will need the **Arduino mbed-enabled Boards** with version **1.3.1** or higher (In the menu bar click on "_Tools > Boards > Boards manager.._").
+On the Arduino IDE you will need the **Arduino Mbed X Boards** package, where *X* is the name of your board, with version **2.0.0** (In the menu bar click on "_Tools > Boards > Boards manager.._").
 
-Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot).
+Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot) [_Recommended_].
 
 
 ## Getting started
@@ -85,7 +85,7 @@ class SampleHID : MbedBleHID {
     // [ Add some fancy stuff here & there ]
 };
 
-SampleHID mySampleHID;
+SampleHID sampleHID;
 ```
 
 
@@ -93,11 +93,11 @@ SampleHID mySampleHID;
 
 ### ble_mouse
 
-This sample emulate a simple two-buttons mouse (motion and button states), using an `Arduino nano 33 BLE` and an `analog 2-axis joystick` with its X axis (*respectively Y*) set to analog input **6** (*respectively 7*) and its push button set to digital input **2**.
+This sample emulate a simple two-buttons mouse (motion and button states), using an `Arduino nano 33 BLE` and an `analog 2-axis joystick` with its X axis (respectively Y) set to analog input *6* (respectively *7*) and its push button set to digital input *2*.
 
-By default the sample is set to *demo mode* and will output random motions for a few seconds after pairing.
+By default the sample is set to demo mode and will output random motions for a few seconds after pairing.
 
-To disable *demo mode* you can set the macro definition **DEMO_ENABLE_RANDOM_INPUT** to 0.
+To disable demo mode you can set the macro definition **DEMO_ENABLE_RANDOM_INPUT** to 0.
 
 ### ble_shining_kb
 

@@ -64,6 +64,12 @@ class MbedBleHID : Gap::EventHandler
     /** Callback when the ble device disconnected from another device. */
     void onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event) override;
 
+    /** Callback when the peer request connection parameters updates. */
+    void onUpdateConnectionParametersRequest(const ble::UpdateConnectionParametersRequestEvent &event) override;
+    
+    /** Callback when connection parameters have been updated. */
+    void onConnectionParametersUpdateComplete(const ble::ConnectionParametersUpdateCompleteEvent &event) override;
+
   protected:
     const std::string kDeviceName_;
     const std::string kManufacturerName_;

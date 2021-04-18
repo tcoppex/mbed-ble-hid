@@ -102,6 +102,9 @@ void MbedBleHID::postInitialization(BLE &ble)
   Gap &gap = ble.gap();
   gap.setEventHandler(this);
 
+  // Allows the application to accept or reject a connection parameters update request.
+  gap.manageConnectionParametersUpdateRequest(true);
+
   // GAP Advertising parameters.
   {
     using namespace ble;
@@ -157,6 +160,26 @@ void MbedBleHID::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &
   hasError_  = false;
   connected_ = false;
   startAdvertising();
+}
+
+void MbedBleHID::onUpdateConnectionParametersRequest(const ble::UpdateConnectionParametersRequestEvent &event)
+{
+  // BLE::Instance().gap().acceptConnectionParametersUpdate(
+  //   event.getConnectionHandle(),
+  //   event.getMinConnectionInterval(), 
+  //   event.getMaxConnectionInterval(),
+  //   event.getSlaveLatency(),
+  //   event.getSupervisionTimeout()
+  // );
+
+  BLE::Instance().gap().rejectConnectionParametersUpdate(
+    event.getConnectionHandle()
+  );
+}
+
+void MbedBleHID::onConnectionParametersUpdateComplete(const ble::ConnectionParametersUpdateCompleteEvent &event)
+{
+
 }
 
 /* -------------------------------------------------------------------------- */

@@ -6,7 +6,7 @@ It was designed for the **Arduino nano 33 BLE** and tested with _GNU/Linux, Andr
 
 ## Environment
 
-On the Arduino IDE you will need the **Arduino Mbed X Boards** package, where *X* is the name of your board, with version **2.0.0** (In the menu bar click on "_Tools > Boards > Boards manager.._").
+On the Arduino IDE you will need the **Arduino Mbed X Boards** package, where *X* is the name of your board (eg. *OS Nano*), with version **2.0.0** ot higher (In the menu bar click on "_Tools > Boards > Boards manager.._").
 
 Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot) [_Recommended_].
 

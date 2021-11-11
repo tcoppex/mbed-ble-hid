@@ -16,10 +16,11 @@
 * The MbedBleHID class acts as an interface to create Human Interface Device
 * using the bluetooth low energy HID over GATT Profile on Mbed stack.
 */
-class MbedBleHID : Gap::EventHandler
+class MbedBleHID : public Gap::EventHandler,
+                   public SecurityManager::EventHandler
 {
   private:
-    static const int kDefaultStringSize = 32;
+    static constexpr int kDefaultStringSize = 32;
     static const char kDefaultDeviceName[kDefaultStringSize];
     static const char kDefaultManufacturerName[kDefaultStringSize];
     static const char kDefaultVersionString[kDefaultStringSize];
@@ -44,20 +45,20 @@ class MbedBleHID : Gap::EventHandler
 
     // -- Getters --
     inline bool connected() const { return connected_; }
-    inline bool has_error() const { return hasError_; }
-    unsigned long connection_time() const;
+    inline bool has_error() const { return error_ != BLE_ERROR_NONE; }
+    uint64_t connection_time() const;
 
   protected:
     /** */
     virtual std::shared_ptr<HIDService> CreateHIDService(BLE &ble) = 0;
 
     /** Setup the bluetooth HID after BLE initialization. */
-    void postInitialization(BLE &ble);
+    void postInitialization(BLE::InitializationCompleteCallbackContext *params);
 
     /** Make the device available for connection. */
     void startAdvertising();
   
-    // -- EventHandler Callbacks --
+    // -- Gap::EventHandler Callbacks --
     /** Callback when the ble device connect to another device. */
     void onConnectionComplete(const ble::ConnectionCompleteEvent &event) override;
 
@@ -68,7 +69,11 @@ class MbedBleHID : Gap::EventHandler
     void onUpdateConnectionParametersRequest(const ble::UpdateConnectionParametersRequestEvent &event) override;
     
     /** Callback when connection parameters have been updated. */
-    void onConnectionParametersUpdateComplete(const ble::ConnectionParametersUpdateCompleteEvent &event) override;
+    void onConnectionParametersUpdateComplete(const ble::ConnectionParametersUpdateCompleteEvent &event) override {}
+
+    // -- SecurityManager::EventHandler Callbacks --
+    void pairingRequest(ble::connection_handle_t connectionHandle) override;
+    // void pairingResult(ble::connection_handle_t connectionHandle, SecurityManager::SecurityCompletionStatus_t result) override;
 
   protected:
     const std::string kDeviceName_;
@@ -83,9 +88,15 @@ class MbedBleHID : Gap::EventHandler
       std::shared_ptr<HIDService> hid;
     } services_;
 
-    unsigned long lastConnection_ = 0;
-    bool connected_ = false;
-    bool hasError_ = false;
+    // Last connection time tick.
+    uint64_t lastConnection_ = 0uL;
+
+    // Last ble error captured.
+    ble_error_t error_       = BLE_ERROR_NONE;
+    
+    // State of the connection.
+    bool connected_          = false;
+
 };
 
 /* -------------------------------------------------------------------------- */

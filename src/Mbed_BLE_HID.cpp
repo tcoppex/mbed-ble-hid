@@ -2,32 +2,57 @@
 #include "Mbed_BLE_HID.h"
 
 /* -------------------------------------------------------------------------- */
+//
+// Notes :
+//  * On Linux, might have to change /etc/bluetooth/input.conf for HID to work.
+//    ( https://askubuntu.com/questions/1065335/bluetooth-mouse-constantly-disconnects-and-reconnects )
+//
+/* -------------------------------------------------------------------------- */
+
+/* [debug macro] Set to true to return on some errors.  */
+#if 0
+# define HANDLE_ERROR()  if (error_) { return; }
+#else
+# define HANDLE_ERROR()
+#endif
+
+/* -------------------------------------------------------------------------- */
 
 namespace {
 
-// Mbed event queue.
+/* Internal generic parameters. */
+static constexpr bool bAcceptConnectionParams = true; //
+static constexpr bool bAcceptPairingRequest   = true; //
+
+/* Mbed event queue. */
 static const int kEventQueueSize = 16 * EVENTS_EVENT_SIZE;
 static events::EventQueue eventQueue(kEventQueueSize);
 
-// BLE events scheduling callback.
+/* BLE events scheduling callback. */
 void bleScheduleEventsProcessing(BLE::OnEventsToProcessCallbackContext* context) 
 {
   BLE &ble = BLE::Instance();
   eventQueue.call(mbed::Callback<void()>(&ble, &BLE::processEvents));
 }
 
-// Redefine Arduino millis() method when on PlatformIO...
+/* Redefines Arduino millis() method when on PlatformIO. */
+static uint64_t GetElapsedTimeMilliseconds() {
 #ifdef PLATFORMIO
-uint32_t millis() {
   static mbed::Timer sTimer;
   static bool bInit(false);
+
   if (!bInit) {
     sTimer.start();
     bInit = true;
   } 
-  return sTimer.read_ms();
-}
+  // Mbed OS v6.
+  // auto ms = chrono::duration_cast<chrono::milliseconds>(sTimer.elapsed_time()).count();
+  // Mbed OS v5 [deprecated].
+  return static_cast<uint64_t>(sTimer.read_ms());
+#else
+  return static_cast<uint64_t>(millis());
 #endif
+}
 
 } // namespace
 
@@ -57,63 +82,84 @@ void MbedBleHID::RunEventThread( void (*task_fn)() )
 
 void MbedBleHID::initialize()
 {
-  static MbedBleHID &HigherSelf = *this; // [an hack transcending reality itself]
-
   BLE &ble = BLE::Instance();
   ble.onEventsToProcess(bleScheduleEventsProcessing);
-  ble.init( [](auto *params) {
-    HigherSelf.postInitialization(params->ble);
-  });
+  ble.init(this, &MbedBleHID::postInitialization);
 }
 
-unsigned long MbedBleHID::connection_time() const {
-  return millis() - lastConnection_;
+uint64_t MbedBleHID::connection_time() const {
+  return GetElapsedTimeMilliseconds() - lastConnection_;
 }
 
-void MbedBleHID::postInitialization(BLE &ble)
+void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *params)
 {
+  BLE &ble = params->ble;
+  
   if (ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
-    hasError_ = true;
     return;
   }
 
-  // Add the required BLE services for the HID-over-GATT Profile.
-  services_.deviceInformation = std::make_unique<DeviceInformationService>(ble,
-    kManufacturerName_.c_str(),
-    kVersionString_.c_str(),    // Model Number
-    kVersionString_.c_str(),    // Serial Number
-    kVersionString_.c_str(),    // Hardware Revision
-    kVersionString_.c_str(),    // Firmware Revision
-    kVersionString_.c_str()     // Software Revision
-  );
-  services_.battery = std::make_unique<BatteryService>(ble, kDefaultBatteryLevel); //
-  services_.hid = CreateHIDService(ble);
+  // Services.
+  {
+    // Add the required BLE services for the HID-over-GATT Profile.
+    services_.deviceInformation = std::make_unique<DeviceInformationService>(ble,
+      kManufacturerName_.c_str(),
+      kVersionString_.c_str(),    // Model Number
+      kVersionString_.c_str(),    // Serial Number
+      kVersionString_.c_str(),    // Hardware Revision
+      kVersionString_.c_str(),    // Firmware Revision
+      kVersionString_.c_str()     // Software Revision
+    );
+    services_.battery = std::make_unique<BatteryService>(ble, kDefaultBatteryLevel); //
+    services_.hid = CreateHIDService(ble);
+  }
 
-  // Initialized Security manager with no Man-in-the-middle (MITM) protection.
-  // @note: When bonding is enabled subsequent pairing after the initial one
-  //        fail, which might be a security parameters issue. 
-  ble.securityManager().init(
-    false,      // disable bonding.
-    false,      // disable MITM protection.
-    SecurityManager::IO_CAPS_NONE
-  );
+  // Security Manager.
+  // ( https://os.mbed.com/docs/mbed-os/v5.15/apis/securitymanager.html )
+  // ( https://os.mbed.com/docs/mbed-os/v5.15/feature-i2c-doxy/class_security_manager.html )
+  {
+    auto &securityManager = ble.securityManager();
 
-  // GAP events callbacks.
-  Gap &gap = ble.gap();
-  gap.setEventHandler(this);
+    // Initialized Security manager with no Man-in-the-middle (MITM) protection.
+    // @note: When bonding is enabled subsequents pairing after the initial one
+    //        might fail, which could be a security parameters issue. 
+    error_ = securityManager.init(
+      false,                          // enable bonding ?
+      false,                          // enable MITM protection ?
+      SecurityManager::IO_CAPS_NONE,  // security IO capabilities.
+      nullptr,                        // passkey.
+      false,                          // enable signing ?
+      nullptr                         // dbFilepath.
+    );
+    HANDLE_ERROR();
 
-  // Allows the application to accept or reject a connection parameters update request.
-  gap.manageConnectionParametersUpdateRequest(true);
+    // Request that the stack attempts to save bonding info at initialization.
+    error_ = securityManager.preserveBondingStateOnReset(true);
+    HANDLE_ERROR();
+
+    // Allow the use of legacy pairing when each side doesn't support secure connections.
+    securityManager.allowLegacyPairing(true);
+
+    // Add events callbacks for pairing requests.
+    securityManager.setSecurityManagerEventHandler(this);
+  }
 
   // GAP Advertising parameters.
   {
-    using namespace ble;
+    Gap &gap = ble.gap();
+    
+    // GAP events callbacks.
+    gap.setEventHandler(this);
 
+    // Allows the application to accept or reject a connection parameters update request.
+    gap.manageConnectionParametersUpdateRequest(true); //
+
+    using namespace ble;
     gap.setAdvertisingPayload(
       LEGACY_ADVERTISING_HANDLE,
       AdvertisingDataSimpleBuilder<LEGACY_ADVERTISING_MAX_SIZE>()
-        .setFlags(adv_data_flags_t::BREDR_NOT_SUPPORTED 
-                | adv_data_flags_t::LE_GENERAL_DISCOVERABLE
+        .setFlags(adv_data_flags_t::BREDR_NOT_SUPPORTED       // Peripheral device is LE only. 
+                | adv_data_flags_t::LE_GENERAL_DISCOVERABLE   // Peripheral device is discoverable at any moment. 
         )
         .setName(kDeviceName_.c_str(), true)
         .setAppearance(services_.hid->appearance())
@@ -123,14 +169,13 @@ void MbedBleHID::postInitialization(BLE &ble)
 
     gap.setAdvertisingParameters(
       LEGACY_ADVERTISING_HANDLE,
-      AdvertisingParameters(
-          advertising_type_t::CONNECTABLE_UNDIRECTED, 
-          adv_interval_t(millisecond_t(1000))
-        )
+      AdvertisingParameters()
+        .setType(advertising_type_t::CONNECTABLE_UNDIRECTED)
         .setPrimaryInterval(
-          conn_interval_t(millisecond_t(15)), 
-          conn_interval_t(millisecond_t(50))
+          conn_interval_t(millisecond_t(100)), //
+          conn_interval_t(millisecond_t(200))  //
         )
+        .setUseLegacyPDU(true)
         .setOwnAddressType(own_address_type_t::RANDOM)
         .setPhy(phy_t::LE_1M, phy_t::LE_CODED)
     );
@@ -141,45 +186,82 @@ void MbedBleHID::postInitialization(BLE &ble)
 
 void MbedBleHID::startAdvertising()
 {
-  if (BLE::Instance().gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE)) {
-    hasError_ = true;
-  }
+  BLE &ble = BLE::Instance();
+
+  // Start Advertising.
+  error_ = ble.gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE);
+  HANDLE_ERROR();
+
+  // Tell the stack the app needs to authorize pairing request via callbacks.
+  error_ = ble.securityManager().setPairingRequestAuthorisation(true); //
+  HANDLE_ERROR();
 }
 
 void MbedBleHID::onConnectionComplete(const ble::ConnectionCompleteEvent &event)
 {
-  hasError_ = (BLE_ERROR_NONE != event.getStatus());
-  connected_ = !hasError_;
+  BLE &ble = BLE::Instance();
+  auto &sm = ble.securityManager();
+  auto handle = event.getConnectionHandle();
+
+  // Check error on connection.
+  error_ = event.getStatus();
+  HANDLE_ERROR();
+
+  // ---------------------------------
+  // Trigger pairing manually.
+  // error_ = sm.requestPairing(handle);
+
+  // (alternative)
+  // Set security to require encryption without MITM protection.
+  // error_ = sm.setLinkSecurity(
+  //   handle,
+  //   SecurityManager::SECURITY_MODE_ENCRYPTION_NO_MITM
+  // );
+  // ---------------------------------
+
+  connected_ = !has_error();
+  
   if (connected_) {
-    lastConnection_ = millis();
+    lastConnection_ = GetElapsedTimeMilliseconds();
   }
 }
 
 void MbedBleHID::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
 {
-  hasError_  = false;
+  error_     = BLE_ERROR_NONE;
   connected_ = false;
   startAdvertising();
 }
 
 void MbedBleHID::onUpdateConnectionParametersRequest(const ble::UpdateConnectionParametersRequestEvent &event)
 {
-  // BLE::Instance().gap().acceptConnectionParametersUpdate(
-  //   event.getConnectionHandle(),
-  //   event.getMinConnectionInterval(), 
-  //   event.getMaxConnectionInterval(),
-  //   event.getSlaveLatency(),
-  //   event.getSupervisionTimeout()
-  // );
+  auto &gap = BLE::Instance().gap();
 
-  BLE::Instance().gap().rejectConnectionParametersUpdate(
-    event.getConnectionHandle()
-  );
+  if (bAcceptConnectionParams) {
+    gap.acceptConnectionParametersUpdate(
+      event.getConnectionHandle(),
+      event.getMinConnectionInterval(), 
+      event.getMaxConnectionInterval(),
+      event.getSlaveLatency(),
+      event.getSupervisionTimeout()
+    );
+  } else {
+    gap.rejectConnectionParametersUpdate(
+      event.getConnectionHandle()
+    );
+  }
 }
 
-void MbedBleHID::onConnectionParametersUpdateComplete(const ble::ConnectionParametersUpdateCompleteEvent &event)
+void MbedBleHID::pairingRequest(ble::connection_handle_t connectionHandle)
 {
+  auto &sm = BLE::Instance().securityManager();
 
+  if (bAcceptPairingRequest) {
+    sm.acceptPairingRequest(connectionHandle);
+  } else {
+    sm.cancelPairingRequest(connectionHandle);  
+  }
 }
+
 
 /* -------------------------------------------------------------------------- */

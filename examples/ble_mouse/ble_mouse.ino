@@ -67,7 +67,8 @@ void loop()
   // When demo mode is enabled we bypass the captured values 
   // to output random motion for a few seconds instead.
 #if DEMO_ENABLE_RANDOM_INPUT
-  if (bleMouse.connection_time() < DEMO_DURATION_MS)
+  bool const bPlayDemo = true;// && (bleMouse.connection_time() < DEMO_DURATION_MS);
+  if (bPlayDemo)
   {
     fx = kJoystickSensibility * randf(-1.0f, 1.0f);
     fy = kJoystickSensibility * randf(-1.0f, 1.0f);

@@ -1,3 +1,8 @@
+```diff
+⚠️ Important
+- This version is currently deprecated.
+```
+
 # Mbed BLE HID
 
 This project provides a simple library to implement *Human Interface Device* (**HID**) for *Bluetooth Low Energy* (**BLE**) on a Mbed stack using the *HID Over GATT Profile* (**HOGP**). 

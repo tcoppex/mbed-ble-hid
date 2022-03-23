@@ -215,7 +215,7 @@ KeySym_t::KeySym_t(KeyCode_t _keycode)
     modifiers |= Modifier::KEY_SHIFT;
   }
 
-  usage = (_keycode & 0xff);
+  usage = _keycode & 0xff;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -223,14 +223,16 @@ KeySym_t::KeySym_t(KeyCode_t _keycode)
 namespace {
 
 // Input Report
+#pragma pack(push, 1)
 struct {
   uint8_t modifiers;
   uint8_t reserved;
   uint8_t key_codes[6];
 } hid_input_report;
+#pragma pack(pop)
 
 // Input Report Reference
-static report_reference_t input_report_ref = { 0, INPUT_REPORT };
+static report_reference_t input_report_ref{ 0, INPUT_REPORT };
 
 static GattAttribute input_report_ref_desc(
   ATT_UUID_HID_REPORT_ID_MAPPING,
@@ -239,7 +241,7 @@ static GattAttribute input_report_ref_desc(
   sizeof(input_report_ref)
 );
 
-static GattAttribute *input_report_ref_descs[] = {
+static GattAttribute *input_report_ref_descs[]{
   &input_report_ref_desc,
 };
 
@@ -249,7 +251,7 @@ struct {
 } hid_output_report;
 
 // Output Report Reference
-static report_reference_t output_report_ref = { 0, OUTPUT_REPORT };
+static report_reference_t output_report_ref{ 0, OUTPUT_REPORT };
 
 static GattAttribute output_report_ref_desc(
   ATT_UUID_HID_REPORT_ID_MAPPING,
@@ -258,17 +260,16 @@ static GattAttribute output_report_ref_desc(
   sizeof(output_report_ref)
 );
 
-static GattAttribute *output_report_ref_descs[] = {
+static GattAttribute *output_report_ref_descs[]{
   &output_report_ref_desc,
 };
 
 // Report Map
 // (Example keyboard descriptor from USB HID reference)
-static uint8_t hid_report_map[] =
-{
-  USAGE_PAGE(1),      0x01,       // Usage Page (Generic Desktop)
-  USAGE(1),           0x06,       // Usage (Keyboard)
-  COLLECTION(1),      0x01,       // Collection (Application)
+static uint8_t hid_report_map[]{
+  USAGE_PAGE(1),      0x01,           // Usage Page (Generic Desktop)
+  USAGE(1),           USAGE_KEYBOARD, // Usage (Keyboard)
+  COLLECTION(1),      0x01,           // Collection (Application)
     // Key codes (Modifiers)
     USAGE_PAGE(1),      0x07,       // Usage Page (Key Codes)
     USAGE_MINIMUM(1),   0xE0,       // Usage Minimum (224)
@@ -331,16 +332,20 @@ HIDKeyboardService::HIDKeyboardService(BLE &_ble) :
 {}
 
 KeySym_t HIDKeyboardService::charToKeySym(unsigned char c) const {
-  auto keycode = (c < s_keyLUT.size()) ? s_keyLUT[c] : DEADKEYS_MASK;
+  const auto keycode = (c < s_keyLUT.size()) ? s_keyLUT[c] : DEADKEYS_MASK;
   return KeySym_t(keycode);
 }
 
 void HIDKeyboardService::sendCharacter(unsigned char c) {
   const auto keysym = charToKeySym(c);
+  
+  // KeyDown report.
   keydown(keysym);
-  SendReport();
+  sendReport();
+
+  // KeyUp report.
   keyup();
-  SendReport(); 
+  sendReport(); 
 }
 
 void HIDKeyboardService::keydown(KeySym_t keysym) {

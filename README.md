@@ -7,11 +7,11 @@
 
 This project provides a simple library to implement *Human Interface Device* (**HID**) for *Bluetooth Low Energy* (**BLE**) on a Mbed stack using the *HID Over GATT Profile* (**HOGP**). 
 
-It was designed for the **Arduino nano 33 BLE** and tested with _GNU/Linux, Android 8.0, iOS, and Windows 10_.
+It was designed for the **Arduino nano 33 BLE** (nordic nrf52) and tested with _GNU/Linux, Android 8.0, iOS, and Windows 10_.
 
 ## Environment
 
-On the Arduino IDE you will need the **Arduino Mbed X Boards** package, where *X* is the name of your board (eg. *OS Nano*), with version **2.0.0** ot higher (In the menu bar click on "_Tools > Boards > Boards manager.._").
+On the Arduino IDE **v1.8.13** you will need the `Arduino Mbed OS Nano Boards` package with version **2.5.2** (In the menu bar click on "_Tools > Boards > Boards manager.._").
 
 Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot).
 
@@ -129,10 +129,11 @@ The file `keylayouts.h` is a slightly modified version from @PaulStoffregen [tee
 
 ## References
 
-* *Bluetooth HUMAN INTERFACE DEVICE PROFILE 1.1*
-* *Bluetooth HID OVER GATT PROFILE SPECIFICATION v10*
+* [Bluetooth HUMAN INTERFACE DEVICE PROFILE 1.1](https://www.bluetooth.com/specifications/specs/human-interface-device-profile-1-1-1/)
+* [Bluetooth HID OVER GATT PROFILE SPECIFICATION 1.0](https://www.bluetooth.com/specifications/specs/hid-over-gatt-profile-1-0/)
 * *USB Device Class Definition for Human Interface Devices (HID) v1.11* 
 * *USB HID Usage Table v1.12*
+* [MBed OS v6.15 bluetooth API reference](https://os.mbed.com/docs/mbed-os/v6.15/apis/bluetooth-apis.html)
 
 ## License
 

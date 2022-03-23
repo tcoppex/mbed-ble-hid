@@ -4,7 +4,7 @@
 namespace {
 
 // Report Reference
-static report_reference_t input_report_ref = { 0, INPUT_REPORT };
+static report_reference_t input_report_ref{ 0, INPUT_REPORT };
 
 static GattAttribute input_report_ref_desc(
   ATT_UUID_HID_REPORT_ID_MAPPING,
@@ -13,7 +13,7 @@ static GattAttribute input_report_ref_desc(
   sizeof(input_report_ref)
 );
 
-static GattAttribute *input_report_ref_descs[] = {
+static GattAttribute *input_report_ref_descs[]{
   &input_report_ref_desc,
 };
 
@@ -27,11 +27,10 @@ struct {
 #pragma pack(pop)
 
 // Report Map
-static uint8_t hid_report_map[] =
-{
-  USAGE_PAGE(1),      0x01,       // Usage Page (Generic Desktop)
-  USAGE(1),           0x05,       // Usage (Game Pad)
-  COLLECTION(1),      0x01,       // Collection (Application)
+static uint8_t hid_report_map[]{
+  USAGE_PAGE(1),      0x01,                 // Usage Page (Generic Desktop)
+  USAGE(1),           USAGE_GAMEPAD,        // Usage (Game Pad)
+  COLLECTION(1),      0x01,                 // Collection (Application)
     USAGE(1),           0x01,       // Usage (Pointer)
     COLLECTION(1),      0x00,       // Collection (Physical)
       USAGE_PAGE(1),      0x01,       // Usage Page (Generic Desktop)
@@ -80,13 +79,13 @@ HIDGamepadService::HIDGamepadService(BLE &_ble)
 }
 
 void HIDGamepadService::motion(float fx, float fy) {
-  uint8_t x = static_cast<int>(0x100 + fx * 0x7f) & 0xff;
-  uint8_t y = static_cast<int>(0x100 + fy * 0x7f) & 0xff;
+  const uint8_t x = static_cast<int>(0x100 + fx * 0x7f) & 0xff;
+  const uint8_t y = static_cast<int>(0x100 + fy * 0x7f) & 0xff;
 
   hid_input_report.x = x;
   hid_input_report.y = y;
 }
 
 void HIDGamepadService::button(Button buttons) {
-  hid_input_report.buttons = uint8_t(buttons); 
+  hid_input_report.buttons = static_cast<uint8_t>(buttons); 
 }

@@ -70,6 +70,9 @@ class MbedBleHID : public Gap::EventHandler,
 
     /** Make the device available for connection. */
     void startAdvertising();
+
+    /** Removes all bonding records stored in internal KVStore. */
+    void clearSavedBonds();
   
     // -- Gap::EventHandler Callbacks --
     void onAdvertisingReport(const ble::AdvertisingReportEvent &event) override;

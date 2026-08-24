@@ -3,7 +3,6 @@
 
 #include "signal_utils.h"
 
-
 class AnalogJoystick {  
  private:
   static const int kDefaultCalibrationSamples = 8;

@@ -1,5 +1,5 @@
-#ifndef BLE_HUMAN_INTERFACE_DEVICE_SERVICE_H__
-#define BLE_HUMAN_INTERFACE_DEVICE_SERVICE_H__
+#ifndef MBED_BLE_HID_SERVICES_HID_SERVICE_H_
+#define MBED_BLE_HID_SERVICES_HID_SERVICE_H_
 
 #if BLE_FEATURE_GATT_SERVER
 
@@ -111,68 +111,68 @@ class HIDService {
              uint8_t featureReportLength = 0,
              report_ref_desc_array_t featureRefDescs = nullptr,
              uint8_t featureRefDescsLength = 0)
-    :ble(_ble)
+    : ble(_ble)
 
-    ,type(type)
+    , type(type)
 
-    ,inputReport(inputReport)
-    ,inputReportLength(inputReportLength)
+    , inputReport(inputReport)
+    , inputReportLength(inputReportLength)
 
-    ,outputReport(outputReport)
-    ,outputReportLength(outputReportLength)
+    , outputReport(outputReport)
+    , outputReportLength(outputReportLength)
 
-    ,featureReport(featureReport)
-    ,featureReportLength(featureReportLength)
+    , featureReport(featureReport)
+    , featureReportLength(featureReportLength)
 
-    ,protocolMode(REPORT_PROTOCOL)
+    , protocolMode(REPORT_PROTOCOL)
 
-    ,inputReportChar(
-      GattCharacteristic::UUID_REPORT_CHAR,
-      inputReport, inputReportLength, inputReportLength, 
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
-    | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE
-    | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY,
-      inputRefDescs, inputRefDescsLength
+    , inputReportChar(
+        GattCharacteristic::UUID_REPORT_CHAR,
+        inputReport, inputReportLength, inputReportLength, 
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
+      | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE
+      | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_NOTIFY,
+        inputRefDescs, inputRefDescsLength
     )
 
-    ,outputReportChar(
-      GattCharacteristic::UUID_REPORT_CHAR,
-      outputReport, outputReportLength, outputReportLength, 
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
-    | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE
-    | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE,
-      outputRefDescs, outputRefDescsLength
+    , outputReportChar(
+        GattCharacteristic::UUID_REPORT_CHAR,
+        outputReport, outputReportLength, outputReportLength, 
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
+      | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE
+      | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE,
+        outputRefDescs, outputRefDescsLength
     )
 
-    ,featureReportChar(
-      GattCharacteristic::UUID_REPORT_CHAR,
-      featureReport,featureReportLength, featureReportLength, 
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
-    | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE,
-      featureRefDescs, featureRefDescsLength
+    , featureReportChar(
+        GattCharacteristic::UUID_REPORT_CHAR,
+        featureReport,featureReportLength, featureReportLength, 
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
+      | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE,
+        featureRefDescs, featureRefDescsLength
     )
     
-    ,protocolModeChar(
-      GattCharacteristic::UUID_PROTOCOL_MODE_CHAR, 
-      &protocolMode, 1, 1,
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
-    | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE
+    , protocolModeChar(
+        GattCharacteristic::UUID_PROTOCOL_MODE_CHAR, 
+        &protocolMode, 1, 1,
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
+      | GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE
     )
 
-    ,reportMapChar(
-      GattCharacteristic::UUID_REPORT_MAP_CHAR,
-      reportMap, reportMapLength, reportMapLength,
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
+    , reportMapChar(
+        GattCharacteristic::UUID_REPORT_MAP_CHAR,
+        reportMap, reportMapLength, reportMapLength,
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
     )
-    ,hidInformationChar(
-      GattCharacteristic::UUID_HID_INFORMATION_CHAR,
-      (uint8_t*)&hidInfo, sizeof(hidInfo), sizeof(hidInfo),
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
+    , hidInformationChar(
+        GattCharacteristic::UUID_HID_INFORMATION_CHAR,
+        (uint8_t*)&hidInfo, sizeof(hidInfo), sizeof(hidInfo),
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_READ
     )
-    ,hidControlPointChar(
-      GattCharacteristic::UUID_HID_CONTROL_POINT_CHAR,
-      &hidControlPoint, 1, 1,
-      GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE
+    , hidControlPointChar(
+        GattCharacteristic::UUID_HID_CONTROL_POINT_CHAR,
+        &hidControlPoint, 1, 1,
+        GattCharacteristic::BLE_GATT_CHAR_PROPERTIES_WRITE_WITHOUT_RESPONSE
     )
   {
     const int kMaxNumCharacteristics = 10;
@@ -181,55 +181,62 @@ class HIDService {
 
     // Basic security required for Reports, ProtocolMode and Report Map.
     const auto req = GattCharacteristic::SecurityRequirement_t::UNAUTHENTICATED;
+
+    // HID Information.
+    characteristics[charindex++] = &hidInformationChar;
+    hidInformationChar.setReadSecurityRequirement(req); //
+
+    // HID Control Point.
+    characteristics[charindex++] = &hidControlPointChar;
+    hidControlPointChar.setWriteSecurityRequirement(req); //
+
+    // Report Map.
+    characteristics[charindex++] = &reportMapChar;
+    reportMapChar.setReadSecurityRequirement(req);
+
     
-    // Input report (if any)
+    // Input report.
     if (inputReport) {
       characteristics[charindex++] = &inputReportChar;
       inputReportChar.setReadSecurityRequirement(req);
       inputReportChar.setWriteSecurityRequirement(req);
+      inputReportChar.setUpdateSecurityRequirement(req); //
     }
-    // Output report (if any)
+    // Output report.
     if (outputReport) {
       characteristics[charindex++] = &outputReportChar;
       outputReportChar.setReadSecurityRequirement(req);
       outputReportChar.setWriteSecurityRequirement(req);
+      outputReportChar.setUpdateSecurityRequirement(req); //
     }
-    // Feature report (if any)
+    // Feature report.
     if (featureReport) {
       characteristics[charindex++] = &featureReportChar;
       featureReportChar.setReadSecurityRequirement(req);
       featureReportChar.setWriteSecurityRequirement(req);
+      featureReportChar.setUpdateSecurityRequirement(req); //
     }
 
-    // Protocol Mode [optional]
+    // [optional] Protocol Mode.
     if ((type & HID_MOUSE) || (type & HID_KEYBOARD)) {
       characteristics[charindex++] = &protocolModeChar;
       protocolModeChar.setReadSecurityRequirement(req);
       protocolModeChar.setWriteSecurityRequirement(req);
     }
-    // Boot Keyboard report [optional]
+
+    // [optional] Boot Keyboard report.
     if (type & HID_KEYBOARD) {
       // todo : input/output 
     }
-    // Boot Mouse report [optional]
+    // [optional] Boot Mouse report.
     if (type & HID_MOUSE) {
       // todo : input
     }
 
-    // Report Map [required]
-    characteristics[charindex++] = &reportMapChar;
-    reportMapChar.setReadSecurityRequirement(req);
-
-    // HID Information [required]
-    characteristics[charindex++] = &hidInformationChar;
-    
-    // HID Control Point [required]
-    characteristics[charindex++] = &hidControlPointChar;
-
-    // (sanity check for overflow)
+    // Sanity check for overflow.
     MBED_ASSERT(charindex <= kMaxNumCharacteristics);
 
-    // Create the BLE HID Service
+    // Create the BLE HID Service.
     GattService hidService(
       GattService::UUID_HUMAN_INTERFACE_DEVICE_SERVICE,
       characteristics, charindex
@@ -237,16 +244,17 @@ class HIDService {
     ble.gattServer().addService(hidService);
   }
 
-  virtual ~HIDService() {}
+  virtual ~HIDService() = default;
 
   /** Defines how the device will appeared in bluetooth managers. */
   virtual ble::adv_data_appearance_t appearance() const = 0; 
 
-  void SendReport()
+  /** Send a full report to the distant ble server. */
+  void sendReport()
   {
     ble.gattServer().write(
       inputReportChar.getValueHandle(),
-      (uint8_t*)inputReport,
+      reinterpret_cast<uint8_t*>(inputReport),
       inputReportLength
     );
   }
@@ -256,7 +264,8 @@ class HIDService {
 
   HIDType type;
 
-  // -- Attributes
+  // -- Attributes --
+  
   report_t          inputReport;
   uint8_t           inputReportLength;
   
@@ -272,18 +281,19 @@ class HIDService {
   uint8_t           hidControlPoint;
 
 
-  // -- BLE Characteristics
-  // Reports (if any)
+  // -- BLE Characteristics --
+
+  // Reports (if any).
   GattCharacteristic inputReportChar;
   GattCharacteristic outputReportChar;
   GattCharacteristic featureReportChar;
 
-  // Optionals (if mouse or keyboard)
+  // Optionals (if mouse or keyboard).
   GattCharacteristic protocolModeChar;
   // [todo] input/output keyboard boot report
   // [todo] input mouse boot report
 
-  // Required
+  // Required.
   GattCharacteristic reportMapChar;
   GattCharacteristic hidInformationChar;
   GattCharacteristic hidControlPointChar;
@@ -293,4 +303,4 @@ class HIDService {
 
 #endif // BLE_FEATURE_GATT_SERVER
 
-#endif // BLE_HUMAN_INTERFACE_DEVICE_SERVICE_H__
+#endif // MBED_BLE_HID_SERVICES_HID_SERVICE_H_

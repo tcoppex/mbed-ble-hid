@@ -13,7 +13,7 @@
 REDIRECT_STDOUT_TO(Serial); //
 
 /* [debug macro] Set to true to return on catched ble errors.  */
-#if 1
+#if !defined(NDEBUG)
 # define HANDLE_ERROR(x)  if (has_error()) { printf(x " (%d)\n", __LINE__); return; }
 # define DEBUG_LOG()  printf("%s %d\n", __FUNCTION__, __LINE__)
 #else
@@ -26,7 +26,7 @@ REDIRECT_STDOUT_TO(Serial); //
 namespace {
 
 /* Behavior for security manager setPairingRequestAuthorisation. */
-static constexpr bool kSecurity_SetPairingRequestAuthorisation   = true;
+// static constexpr bool kSecurity_SetPairingRequestAuthorisation   = true;
 static constexpr bool kSecurity_AcceptPairingRequest             = true;
 
 /* Behavior for GAP manageConnectionParametersUpdateRequest. */
@@ -94,10 +94,16 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
 {
   BLE &ble = params->ble;
 
+  if (params->error != BLE_ERROR_NONE) {
+    fprintf(stderr, "[BLE] Initialization failed: %d\n", params->error);
+    return;
+  }
+
   // Services.
   {
     // Add the required BLE services for the HID-over-GATT Profile.
-    services_.deviceInformation = std::make_unique<DeviceInformationService>(ble,
+    services_.deviceInformation = std::make_unique<DeviceInformationService>(
+      ble,
       kManufacturerName_.c_str(),
       kVersionString_.c_str(),    // Model Number
       kVersionString_.c_str(),    // Serial Number
@@ -133,28 +139,31 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
       , false                           // enable signing ?
       , nullptr                         // dbFilepath.
     );
-    HANDLE_ERROR();
+    if (has_error()) {
+      fprintf(stderr, "[BLE Warning] Security init issue: %d\n", error_);
+    }
 
     // Disable keypress notifications during passkey entry.
     error_ = securityManager.setKeypressNotification(false);
     HANDLE_ERROR();
 
-    // Request that the stack attempts to save bonding info at initialization or not [require a filesystem].
-    // Persistence may fail if abnormally terminated.
-    error_ = securityManager.preserveBondingStateOnReset(true); //
+    // Disable persistent storage unless NVS/KVStore is explicitly built.
+    // Preserving bonding state without NVS will corrupt security database across resets.
+    error_ = securityManager.preserveBondingStateOnReset(true);
     HANDLE_ERROR();
 
     // Allow the use of legacy pairing when each side doesn't support secure connections.
     error_ = securityManager.allowLegacyPairing(true);
     HANDLE_ERROR();
 
-    // Tell the stack the app needs to authorize pairing request via callbacks.
-    error_ = securityManager.setPairingRequestAuthorisation(kSecurity_SetPairingRequestAuthorisation);
-    HANDLE_ERROR();
+    // Let Mbed handle auto-accepting bonded peers.
+    error_ = securityManager.setPairingRequestAuthorisation(true);
+    if (has_error()) {
+      fprintf(stderr, "[BLE Warning] Pairing auth setup issue: %d\n", error_);
+    }
 
     // Add events callbacks for pairing requests.
     securityManager.setSecurityManagerEventHandler(this);
-
     securityManager.setHintFutureRoleReversal(false);
 
     // securityManager.onShutdown(..);
@@ -185,8 +194,11 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
           phy_t::LE_CODED     // preferred RX modulation.
         )
     );
-    HANDLE_ERROR();
+    if (has_error()) {
+      fprintf(stderr, "[BLE Error] Advertising parameters setup failed: %d\n", error_);
+    }
 
+    // Advertising payload
     error_ = gap.setAdvertisingPayload(
       LEGACY_ADVERTISING_HANDLE,
       AdvertisingDataSimpleBuilder<LEGACY_ADVERTISING_MAX_SIZE>()
@@ -199,16 +211,18 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
         .setLocalService(GattService::UUID_HUMAN_INTERFACE_DEVICE_SERVICE)
         .getAdvertisingData()
     );
-    HANDLE_ERROR();
+    if (has_error()) {
+      fprintf(stderr, "[BLE Error] Advertising payload setup failed: %d\n", error_);
+    }
 
     // Scan parameters.
-    error_ = gap.setScanParameters(
-      ScanParameters()
-        .setPhys(true, true) //
-        .set1mPhyConfiguration(ble::scan_interval_t(100), ble::scan_window_t(40), false) //
-        .setCodedPhyConfiguration(ble::scan_interval_t(80), ble::scan_window_t(60), false) //
-    );
-    HANDLE_ERROR();
+    // error_ = gap.setScanParameters(
+    //   ScanParameters()
+    //     .setPhys(true, true) //
+    //     .set1mPhyConfiguration(ble::scan_interval_t(100), ble::scan_window_t(40), false) //
+    //     .setCodedPhyConfiguration(ble::scan_interval_t(80), ble::scan_window_t(60), false) //
+    // );
+    // HANDLE_ERROR();
 
     // Allows the application to accept or reject a connection parameters update request.
     error_ = gap.manageConnectionParametersUpdateRequest(kGAP_ManageConnectionParamsUpdateRequest); //
@@ -225,7 +239,6 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
 void MbedBleHID::startAdvertising()
 {
   DEBUG_LOG();
-
   BLE &ble = BLE::Instance();
 
   error_ = ble.gap().startAdvertising(ble::LEGACY_ADVERTISING_HANDLE);
@@ -266,43 +279,33 @@ void MbedBleHID::onConnectionComplete(const ble::ConnectionCompleteEvent &event)
 
   // Check error on connection.
   error_ = event.getStatus();
-  HANDLE_ERROR();
-
-  // Connection initiated by the device.
-#if 1
-  bool const bUseSecureLink(true);
-  
-  BLE &ble = BLE::Instance();
-  auto &securityManager = ble.securityManager();
-  auto handle = event.getConnectionHandle();
-
-  // Trigger pairing manually.
-  if (bUseSecureLink) {
-    // Set security to require encryption without MITM protection.
-    error_ = securityManager.setLinkSecurity(handle, SecurityManager::SECURITY_MODE_ENCRYPTION_NO_MITM);
-  } else {
-    error_ = securityManager.requestPairing(handle);
-  }
-#endif
-
-  // Set connection status.
-  // connected_ = !has_error() && (BLE_ERROR_NONE == event.getStatus());
-  // if (connected_) {
-  //   lastConnection_ = millis();
-  //   printf("\tlast connection : %u\n", lastConnection_);
-  // } else {
-  //   printf("\tConnection fails.");
-  // }
   if (has_error()) {
-    printf("\tConnection fails.");
+    printf("\tConnection failed with status: %d\n", error_);
+    connected_ = false;
+    startAdvertising();
+    return;
+  }
+
+  connected_ = true;
+  lastConnection_ = millis();
+  printf("\tConnected successfully. Time: %u ms\n", lastConnection_);
+
+  // Request security link encryption
+  BLE &ble = BLE::Instance();
+  auto handle = event.getConnectionHandle();
+  error_ = ble.securityManager().setLinkSecurity(
+    handle,
+    SecurityManager::SECURITY_MODE_ENCRYPTION_NO_MITM
+  );
+  if (has_error()) {
+    printf("\tFailed to request link security: %d\n", error_);
   }
 }
 
 void MbedBleHID::onAdvertisingEnd(const ble::AdvertisingEndEvent &event)
 {
-  DEBUG_LOG();
+  // DEBUG_LOG();
 }
-
 
 void MbedBleHID::onUpdateConnectionParametersRequest(const ble::UpdateConnectionParametersRequestEvent &event)
 {
@@ -318,12 +321,10 @@ void MbedBleHID::onUpdateConnectionParametersRequest(const ble::UpdateConnection
       event.getSlaveLatency(),
       event.getSupervisionTimeout()
     );
-    printf("\tAccept.\n");
+    printf("\tAccepted host connection parameter updates.\n");
   } else {
-    gap.rejectConnectionParametersUpdate(
-      event.getConnectionHandle()
-    );
-    printf("\tRefuse.\n");
+    gap.rejectConnectionParametersUpdate(event.getConnectionHandle());
+    printf("\tRejected host connection parameter updates.\n");
   }
 }
 
@@ -331,26 +332,29 @@ void MbedBleHID::onConnectionParametersUpdateComplete(const ble::ConnectionParam
 {
   DEBUG_LOG();
 
-  // NOTE
-  // the device is *truly* connected on the second call to this function
-  // after connectionCompleted and advertisingEnd.
-  if (preConnected_ && !connected_) {
-    connected_ = !has_error();
-    if (connected_) {
-      lastConnection_ = millis();
-      printf("\tlast connection : %u\n", lastConnection_);
-    }
-  } else {
-    preConnected_ = true;
-  }
+  // // NOTE
+  // // the device is *truly* connected on the second call to this function
+  // // after connectionCompleted and advertisingEnd.
+  // if (preConnected_ && !connected_) {
+  //   connected_ = !has_error();
+  //   if (connected_) {
+  //     lastConnection_ = millis();
+  //     printf("\tlast connection : %u\n", lastConnection_);
+  //   }
+  // } else {
+  //   preConnected_ = true;
+  // }
 }
 
 void MbedBleHID::onDisconnectionComplete(const ble::DisconnectionCompleteEvent &event)
 {
   DEBUG_LOG();
+  printf("\tDisconnected. Reason: %d\n", event.getReason().value());
 
-  error_     = BLE_ERROR_NONE;
+  error_ = BLE_ERROR_NONE;
   preConnected_ = connected_ = false;
+
+  // Resume advertising so hosts can reconnect
   startAdvertising();
 }
 
@@ -374,10 +378,10 @@ void MbedBleHID::pairingRequest(ble::connection_handle_t connectionHandle)
 
   if (kSecurity_AcceptPairingRequest) {
     sm.acceptPairingRequest(connectionHandle);
-    printf("\tAccept.\n");
+    printf("\tAccepted pairing request.\n");
   } else {
-    sm.cancelPairingRequest(connectionHandle);  
-    printf("\tRefuse.\n");
+    sm.cancelPairingRequest(connectionHandle);
+    printf("\tRefused pairing request.\n");
   }
 }
 

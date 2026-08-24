@@ -89,11 +89,13 @@ class MbedBleHID : public Gap::EventHandler,
     /** Callback when connection parameters have been updated. */
     void onConnectionParametersUpdateComplete(const ble::ConnectionParametersUpdateCompleteEvent &event) override;
 
-
     // -- SecurityManager::EventHandler Callbacks --
 
     /** Manually accept or Cancel a pairing request. */
     void pairingRequest(ble::connection_handle_t connectionHandle) override;
+    void pairingResult(ble::connection_handle_t connectionHandle, ble::SecurityManager::SecurityCompletionStatus_t result) override;
+
+    void linkEncryptionResult(ble::connection_handle_t connectionHandle, ble::link_encryption_t result) override;
 
   protected:
     const std::string kDeviceName_;

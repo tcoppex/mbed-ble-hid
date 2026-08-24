@@ -149,7 +149,7 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
 
     // Disable persistent storage unless NVS/KVStore is explicitly built.
     // Preserving bonding state without NVS will corrupt security database across resets.
-    error_ = securityManager.preserveBondingStateOnReset(true);
+    error_ = securityManager.preserveBondingStateOnReset(false);
     HANDLE_ERROR();
 
     // Allow the use of legacy pairing when each side doesn't support secure connections.
@@ -157,7 +157,7 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
     HANDLE_ERROR();
 
     // Let Mbed handle auto-accepting bonded peers.
-    error_ = securityManager.setPairingRequestAuthorisation(true);
+    error_ = securityManager.setPairingRequestAuthorisation(false);
     if (has_error()) {
       fprintf(stderr, "[BLE Warning] Pairing auth setup issue: %d\n", error_);
     }
@@ -191,7 +191,7 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
         // .setOwnAddressType(own_address_type_t::PUBLIC)
         .setPhy(
           phy_t::LE_1M,       // preferred TX modulation.
-          phy_t::LE_CODED     // preferred RX modulation.
+          phy_t::LE_1M        // preferred RX modulation.
         )
     );
     if (has_error()) {
@@ -252,15 +252,6 @@ void MbedBleHID::startAdvertising()
 void MbedBleHID::onAdvertisingReport(const ble::AdvertisingReportEvent &event)
 {
   DEBUG_LOG();
-
-  BLE &ble = BLE::Instance();
- 
-  error_ = ble.gap().connect(
-    event.getPeerAddressType(),
-    event.getPeerAddress(),
-    ble::ConnectionParameters()
-  );
-  HANDLE_ERROR();
 }
 
 void MbedBleHID::onAdvertisingStart(const ble::AdvertisingStartEvent &event)
@@ -368,13 +359,13 @@ void MbedBleHID::pairingRequest(ble::connection_handle_t connectionHandle)
 
   auto &sm = BLE::Instance().securityManager();
 
-  // Disable generation and exchange of signing keys for this connection.
-  error_ = sm.enableSigning(connectionHandle, false); //
-  HANDLE_ERROR();
+  // // Disable generation and exchange of signing keys for this connection.
+  // error_ = sm.enableSigning(connectionHandle, false); //
+  // HANDLE_ERROR();
 
-  // Disable using Out Of Band data.
-  error_ = sm.setOOBDataUsage(connectionHandle, false, false);
-  HANDLE_ERROR();
+  // // Disable using Out Of Band data.
+  // error_ = sm.setOOBDataUsage(connectionHandle, false, false);
+  // HANDLE_ERROR();
 
   if (kSecurity_AcceptPairingRequest) {
     sm.acceptPairingRequest(connectionHandle);
@@ -382,6 +373,44 @@ void MbedBleHID::pairingRequest(ble::connection_handle_t connectionHandle)
   } else {
     sm.cancelPairingRequest(connectionHandle);
     printf("\tRefused pairing request.\n");
+  }
+}
+
+void MbedBleHID::pairingResult(
+  ble::connection_handle_t connectionHandle,
+  ble::SecurityManager::SecurityCompletionStatus_t result
+)
+{
+  DEBUG_LOG();
+
+  if (result == ble::SecurityManager::SEC_STATUS_SUCCESS) {
+    printf("\tPairing successfully completed.\n");
+  } else {
+    printf("\tPairing failed with status error code: 0x%02x\n", result);
+    // Disconnect so the central host realizes the keys are invalid,
+    // allowing the user to unpair and re-pair cleanly.
+    BLE::Instance().gap().disconnect(
+      connectionHandle,
+      ble::local_disconnection_reason_t::AUTHENTICATION_FAILURE
+    );
+  }
+}
+
+void MbedBleHID::linkEncryptionResult(ble::connection_handle_t connectionHandle, ble::link_encryption_t result)
+{
+  DEBUG_LOG();
+
+  if (result == ble::link_encryption_t::ENCRYPTED
+   || result == ble::link_encryption_t::ENCRYPTED_WITH_MITM) {
+    printf("\tLink successfully encrypted.\n");
+  } else {
+    printf("\tLink encryption failed. Likely a stale bond. Forcing unpair...\n");
+    // Disconnect so the central host realizes the keys are invalid,
+    // allowing the user to unpair and re-pair cleanly.
+    BLE::Instance().gap().disconnect(
+      connectionHandle,
+      ble::local_disconnection_reason_t::AUTHENTICATION_FAILURE
+    );
   }
 }
 

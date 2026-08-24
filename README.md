@@ -99,7 +99,7 @@ By default the sample is set to demo mode and will output random motions for a f
 
 To disable demo mode you can set the macro definition **DEMO_ENABLE_RANDOM_INPUT** to 0.
 
-### ble_shining_kb
+### ble_keyboard
 
 Simulate a ghost writer repeating a sentence over and over again.
 

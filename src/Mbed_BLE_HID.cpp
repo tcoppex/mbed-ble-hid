@@ -125,7 +125,7 @@ void MbedBleHID::postInitialization(BLE::InitializationCompleteCallbackContext *
     //  * MITM protection requires IO capabilities.
     //
     error_ = securityManager.init(
-        true                           // enable bonding ?
+        false                           // enable bonding ?
       , false                           // enable MITM protection ?
       , SecurityManager::IO_CAPS_NONE   // security IO capabilities.
       , nullptr                         // passkey.

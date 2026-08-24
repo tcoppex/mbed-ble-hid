@@ -1,17 +1,12 @@
-```diff
-⚠️ Important
-- This version is currently deprecated.
-```
-
 # Mbed BLE HID
 
 This project provides a simple library to implement *Human Interface Device* (**HID**) for *Bluetooth Low Energy* (**BLE**) on a Mbed stack using the *HID Over GATT Profile* (**HOGP**). 
 
-It was designed for the **Arduino nano 33 BLE** (nordic nrf52) and tested with _GNU/Linux, Android 8.0, iOS, and Windows 10_.
+It was designed for the **Arduino nano 33 BLE** (nordic nrf52) and tested on _GNU/Linux, Android 14.0 and Windows 11_.
 
 ## Environment
 
-On the Arduino IDE **v1.8.13** you will need the `Arduino Mbed OS Nano Boards` package with version **2.5.2** (In the menu bar click on "_Tools > Boards > Boards manager.._").
+On the Arduino IDE (tested against **v2.3.10**) you will need the `Arduino Mbed OS Nano Boards` package (**v4.6.0**) (In the menu bar click on "_Tools > Boards > Boards manager.._").
 
 Alternatively you can use [platformio](https://github.com/platformio) [Deviot](https://github.com/platformio/Deviot).
 
@@ -87,7 +82,7 @@ class SampleHID : MbedBleHID {
     // This should return the polymorphic shared_ptr of your service.
     std::shared_ptr<HIDService> CreateHIDService(BLE &ble) override;
 
-    // [ Add some fancy stuff here & there ]
+    // [ Add some fancy stuff here ]
 };
 
 SampleHID sampleHID;
@@ -112,7 +107,8 @@ By default the keyboard layout is set to **LAYOUT_US_INTERNATIONAL**, you can ch
 
 ## Known limitations
 
-*Boot protocol*, which allows mouses and keyboards to be used on a boot level, is laid out but not implemented.
+- **Persistent bonding** is _not enabled_ by default, as the required non-volatile storage for the BLE security keys is not configured. BLE security keys are not retained across a board reset, so the host must pair with the device again before establishing an authenticated connection.
+- **Boot protocol**, which allows mouses and keyboards to be used on a boot level, is not implemented.
 
 ## Acknowledgment
 
